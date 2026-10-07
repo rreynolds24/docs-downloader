@@ -167,7 +167,7 @@ exit /b 0
 set "SOURCE_HTML=%~1"
 set "DEST_LIST=%~2"
 
-findstr /i /c:"/document/" "%SOURCE_HTML%" > "%PRODUCT_MATCHES%"
+findstr /i /c:"<a " "%SOURCE_HTML%" | findstr /i /c:"/document/" > "%PRODUCT_MATCHES%"
 if errorlevel 1 (
   > "%DEST_LIST%" type nul
   exit /b 1
