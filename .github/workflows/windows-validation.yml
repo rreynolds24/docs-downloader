@@ -33,3 +33,11 @@ jobs:
         run: |
           call run.bat inventory https://docs.fortinet.com/product/fortipam/7.0
           if errorlevel 1 exit /b %errorlevel%
+
+      - name: Live FortiPAM 7.0 download
+        shell: cmd
+        run: |
+          call run.bat download https://docs.fortinet.com/product/fortipam/7.0
+          if errorlevel 1 exit /b %errorlevel%
+          for %%F in (runtime\downloads\*.pdf) do if %%~zF LEQ 0 exit /b 20
+          dir /b runtime\downloads\*.pdf
