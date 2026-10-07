@@ -86,8 +86,9 @@ if errorlevel 1 (
 )
 
 > "%DOC_LIST%" (
-  for /f "usebackq tokens=2 delims=^"" %%A in (`findstr /i /c:"^<a href=^"/document/" "%PRODUCT_HTML%"`) do (
-    echo %%A
+  for /f "usebackq tokens=2 delims=^"" %%A in ('findstr /i /c:"/document/" "%PRODUCT_HTML%"') do (
+    echo %%A | findstr /b /c:"/document/" >nul
+    if not errorlevel 1 echo %%A
   )
 )
 
@@ -120,7 +121,7 @@ for /f "usebackq delims=" %%D in ("%DOC_LIST%") do (
     echo [WARN] Could not retrieve document page: !DOC_URL!
     set /a FAILED+=1
   ) else (
-    for /f "usebackq tokens=6 delims=^"" %%P in (`findstr /i /c:"id=^"reader-pdf^"" "%DOC_HTML%"`) do (
+    for /f "usebackq tokens=6 delims=^"" %%P in ('findstr /i /c:"reader-pdf" "%DOC_HTML%"') do (
       if not defined PDF_URL set "PDF_URL=%%P"
     )
 
