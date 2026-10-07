@@ -172,7 +172,7 @@ if errorlevel 1 (
 )
 
 > "%DEST_LIST%" (
-  for /f "usebackq tokens=2 delims=^"" %%A in ("%PRODUCT_MATCHES%") do (
+  for /f usebackq^ tokens^=2^ delims^=^" %%A in ("%PRODUCT_MATCHES%") do (
     set "CANDIDATE=%%A"
     if /i "!CANDIDATE:~0,10!"=="/document/" echo(!CANDIDATE!
   )
@@ -187,7 +187,7 @@ set "PDF_URL="
 > "%PDF_MATCHES%" findstr /i /c:"reader-pdf" "%SOURCE_HTML%"
 if errorlevel 1 exit /b 1
 
-for /f "usebackq tokens=2,4,6,8,10,12,14 delims=^"" %%A in ("%PDF_MATCHES%") do (
+for /f usebackq^ tokens^=2,4,6,8,10,12,14^ delims^=^" %%A in ("%PDF_MATCHES%") do (
   set "HAS_READER_ID=0"
   set "URL_CANDIDATE="
   set "CANDIDATE=%%A"
