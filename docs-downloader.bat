@@ -2,7 +2,7 @@
 setlocal EnableExtensions EnableDelayedExpansion
 cd /d "%~dp0"
 
-set "APP_VERSION=0.0.2"
+set "APP_VERSION=0.0.3"
 set "BASE_URL=https://docs.fortinet.com"
 set "RUNTIME=%~dp0runtime"
 set "TEMP_DIR=%RUNTIME%\temp"
@@ -87,8 +87,8 @@ if errorlevel 1 (
 
 > "%DOC_LIST%" (
   for /f "usebackq tokens=2 delims=^"" %%A in ('findstr /i /c:"/document/" "%PRODUCT_HTML%"') do (
-    echo %%A | findstr /b /c:"/document/" >nul
-    if not errorlevel 1 echo %%A
+    set "CANDIDATE=%%A"
+    if /i "!CANDIDATE:~0,10!"=="/document/" echo(!CANDIDATE!
   )
 )
 
