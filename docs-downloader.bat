@@ -66,7 +66,7 @@ if not defined TARGET_URL (
   exit /b 2
 )
 
-set "URL_PREFIX=%TARGET_URL:~0,33%"
+set "URL_PREFIX=%TARGET_URL:~0,34%"
 if /i not "%URL_PREFIX%"=="https://docs.fortinet.com/product/" (
   echo [FAIL] URL must begin with:
   echo        https://docs.fortinet.com/product/
