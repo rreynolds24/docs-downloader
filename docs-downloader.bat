@@ -257,8 +257,8 @@ for /f "usebackq delims=" %%D in ("%SELFTEST_LIST%") do (
   if not defined FIRST_DOC set "FIRST_DOC=%%D"
 )
 
-if not "!SELFTEST_COUNT!"=="2" (
-  echo [FAIL] Expected 2 document links, got !SELFTEST_COUNT!.
+if not "!SELFTEST_COUNT!"=="3" (
+  echo [FAIL] Expected 3 unique document links, got !SELFTEST_COUNT!.
   exit /b 12
 )
 
