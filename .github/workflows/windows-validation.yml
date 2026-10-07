@@ -60,3 +60,17 @@ jobs:
           findstr /i /n /c:"/document/" fortiweb-766.html
           echo FWB766_FINDSTR_RC=%ERRORLEVEL%
           exit /b 0
+
+      - name: Diagnostic FortiWeb version-family URLs
+        shell: cmd
+        run: |
+          for %%V in (8.0 7.6 7.4) do (
+            echo ==== FortiWeb %%V ====
+            curl.exe -L --fail --silent --show-error https://docs.fortinet.com/product/fortiweb/%%V -o fortiweb-%%V.html
+            echo CURL_RC=!ERRORLEVEL!
+            if exist fortiweb-%%V.html (
+              findstr /i /n /c:"/document/" fortiweb-%%V.html > fortiweb-%%V-matches.txt
+              for %%F in (fortiweb-%%V-matches.txt) do echo MATCH_BYTES=%%~zF
+            )
+          )
+          exit /b 0
