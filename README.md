@@ -4,9 +4,9 @@ Portable Windows-native CLI for discovering and downloading PDF documentation fr
 
 ## Status
 
-**Current release: v0.0.5**
+**Current release: v0.0.6**
 
-The core workflow is now validated end to end on both:
+The core workflow is validated end to end on both:
 
 - GitHub Actions running Windows Server 2025 with the real `cmd.exe` Batch implementation.
 - The target restricted Windows workstation.
@@ -144,3 +144,16 @@ Not yet implemented:
 - de-duplication across multiple requested versions
 
 See `docs/ARCHITECTURE.md` and `docs/VALIDATION.md` for implementation and validation details.
+
+
+## FortiWeb note
+
+FortiWeb product pages use document anchors where attributes such as `class` can appear before `href`. v0.0.6 discovers relative `/document/...` targets regardless of that attribute ordering and de-duplicates repeated links.
+
+Use the product root:
+
+```bat
+run.bat inventory https://docs.fortinet.com/product/fortiweb/
+```
+
+The Windows CI suite includes this FortiWeb root inventory as a regression test.
