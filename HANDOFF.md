@@ -6,7 +6,9 @@ Provide a portable Fortinet documentation downloader that can run on a restricte
 
 ## Current state
 
-v0.0.1 implements a pure Batch/curl workflow:
+**v0.0.1 is merged to `main` via PR #1.**
+
+The release implements a pure Batch/curl workflow:
 
 - `install.bat` checks required inbox tooling and creates runtime directories.
 - `run.bat` is the stable launcher.
@@ -16,19 +18,27 @@ v0.0.1 implements a pure Batch/curl workflow:
 - Each document page is followed with `curl -L`.
 - The direct PDF link is extracted from the `reader-pdf` anchor.
 - PDFs are downloaded to `runtime\downloads`.
+- The human-operated CLI uses the Fortinet ASCII-art convention.
 
-The parser design is grounded in the supplied October 2026 Fortinet Docs HAR captures.
+The parser design is grounded in the supplied October 2026 Fortinet Docs HAR captures. Static/HAR validation passed for the initial FortiManagement Cloud 26.3 test case.
 
 ## Exact next action
 
-Download the repository ZIP on the restricted Windows workstation, extract it, run `install.bat`, then run:
+On the restricted Windows workstation, download the repository ZIP from `main`, extract it, and run:
 
 ```bat
+install.bat
 run.bat inventory https://docs.fortinet.com/product/fortimanagement-cloud/26.3
 ```
 
-If inventory succeeds, run the same URL with `download`.
+Expected inventory count: **4** PDF targets.
+
+If inventory succeeds:
+
+```bat
+run.bat download https://docs.fortinet.com/product/fortimanagement-cloud/26.3
+```
 
 ## Validation boundary
 
-Repository/static validation is possible in the current environment, but Windows `cmd.exe` execution on the actual restricted workstation remains the release acceptance gate.
+The remaining acceptance gate is real `cmd.exe` execution on the restricted workstation. Do not mark the Windows offline-app contract PASS until that execution evidence exists.
