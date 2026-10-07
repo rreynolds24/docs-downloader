@@ -2,6 +2,31 @@
 
 Portable Windows-native CLI for discovering and downloading PDF documentation from the Fortinet Document Library.
 
+## Status
+
+**Current release: v0.0.5**
+
+The core workflow is now validated end to end on both:
+
+- GitHub Actions running Windows Server 2025 with the real `cmd.exe` Batch implementation.
+- The target restricted Windows workstation.
+
+For the live FortiPAM 7.0 test page:
+
+```text
+https://docs.fortinet.com/product/fortipam/7.0
+```
+
+the validated result is:
+
+```text
+Documents discovered : 6
+PDF targets resolved  : 6
+Warnings/failures     : 0
+```
+
+All six PDFs were also downloaded successfully.
+
 ## Restricted workstation design
 
 The supported runtime path uses only Windows inbox tooling:
@@ -13,67 +38,109 @@ The supported runtime path uses only Windows inbox tooling:
 
 There is no PowerShell, Git, Python, Node.js, package manager, custom executable, admin-rights requirement, or registry modification in the supported path.
 
-Internet access is used only for the tool's core function: retrieving pages and PDF attachments from Fortinet documentation endpoints.
+Internet access is used only for the tool's declared function: retrieving Fortinet documentation pages and PDF attachments.
 
-## v0.0.1
+## Install
 
-The initial release accepts a Fortinet **product/version** URL, for example:
-
-```text
-https://docs.fortinet.com/product/fortimanagement-cloud/26.3
-```
-
-It discovers the documents listed on that page, follows each document page, resolves the direct `reader-pdf` link, and optionally downloads the PDFs.
-
-## Restricted workstation test
-
-Download the repository ZIP from GitHub and extract it. No Git client is required.
-
-Run:
+Download the repository ZIP from GitHub, extract it, and run:
 
 ```bat
 install.bat
 ```
 
-Then inventory the HAR-validated test product:
+The installer performs capability checks and creates the local runtime directories. It does not download dependencies.
 
-```bat
-run.bat inventory https://docs.fortinet.com/product/fortimanagement-cloud/26.3
-```
+## Usage
 
-Expected v0.0.1 inventory result: four PDF targets should be discovered:
-
-- Administration Guide
-- Release Notes
-- GUI Mapping Guide for Edge
-- MSSP Deployment Guide
-
-If inventory succeeds:
-
-```bat
-run.bat download https://docs.fortinet.com/product/fortimanagement-cloud/26.3
-```
-
-PDFs are written beneath:
-
-```text
-runtime\downloads\
-```
-
-You can also start the interactive menu with:
+Start the interactive menu:
 
 ```bat
 run.bat
 ```
 
-and run the local environment check with:
+Or use the command form directly.
+
+Inventory a product/version without downloading:
+
+```bat
+run.bat inventory https://docs.fortinet.com/product/fortipam/7.0
+```
+
+Download all PDFs exposed by that product/version page:
+
+```bat
+run.bat download https://docs.fortinet.com/product/fortipam/7.0
+```
+
+Run the environment check:
 
 ```bat
 run.bat doctor
 ```
 
+Run the parser regression test:
+
+```bat
+run.bat selftest
+```
+
+## Output
+
+Downloaded PDFs are written to:
+
+```text
+runtime\downloads\
+```
+
+For FortiPAM 7.0, the live validation resolved and downloaded:
+
+```text
+FortiPAM-7.0.0-Getting_Started.pdf
+FortiPAM-7.0.0-Administration_Guide.pdf
+FortiPAM-7.0.0-Release-Notes.pdf
+FortiPAM-7.0.0-Ports.pdf
+FortiPAM-7.0.0-Examples.pdf
+FortiPAM-7.0.0-Best_Practices.pdf
+```
+
+## How discovery works
+
+The downloader follows the same server-rendered HTML path used by the Fortinet Document Library:
+
+```text
+product/version page
+  -> discover <a href="/document/..."> links
+  -> fetch each document page
+  -> locate id="reader-pdf"
+  -> resolve the direct HTTPS PDF attachment
+  -> optionally download with curl.exe
+```
+
+The parser deliberately targets Fortinet's current document markup rather than attempting to be a general HTML parser.
+
+## Validation
+
+Every parser change is now gated by a Windows GitHub Actions workflow that runs:
+
+1. `install.bat`
+2. `run.bat doctor`
+3. `run.bat selftest`
+4. live FortiPAM 7.0 inventory
+5. live FortiPAM 7.0 PDF download
+6. non-empty PDF verification
+
+The v0.0.4 validation run passed all of those stages before the working implementation was merged. v0.0.5 contains only documentation and deterministic CLI-banner alignment changes on top of that working parser.
+
 ## Current limitations
 
-v0.0.1 intentionally supports one product/version page at a time. All-version crawling, document-type filters, manifests, and delta/update mode are planned after restricted-workstation validation.
+The current release processes one Fortinet product/version page at a time.
 
-See `docs/ARCHITECTURE.md` for implementation and design details.
+Not yet implemented:
+
+- all-version traversal
+- document-type filtering
+- manifest generation
+- update/delta mode
+- de-duplication across multiple requested versions
+
+See `docs/ARCHITECTURE.md` and `docs/VALIDATION.md` for implementation and validation details.
