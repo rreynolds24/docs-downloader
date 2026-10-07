@@ -2,7 +2,7 @@
 setlocal EnableExtensions EnableDelayedExpansion
 cd /d "%~dp0"
 
-set "APP_VERSION=0.0.4"
+set "APP_VERSION=0.0.5"
 set "BASE_URL=https://docs.fortinet.com"
 set "RUNTIME=%~dp0runtime"
 set "TEMP_DIR=%RUNTIME%\temp"
@@ -316,16 +316,16 @@ if "%DOCTOR_FAIL%"=="1" exit /b 1
 exit /b 0
 
 :banner
-echo.
-echo   ### ##### ###     ###################################################
-echo  #### ##### ####    ##                                               ##
-echo ##### ##### #####   ## Welcome to the Fortinet Docs Downloader       ##
-echo                     ##                                               ##
-echo #####       #####   ###################################################
-echo #####       #####   ##                                               ##
-echo #####       #####   ## Discover and download Fortinet documentation  ##
-echo                     ## directly from docs.fortinet.com                ##
-echo ##### ##### #####   ## Windows native: cmd.exe + curl.exe only       ##
-echo  #### ##### ####    ## v%APP_VERSION%                                         ##
-echo   ### ##### ###     ###################################################
+echo(
+echo(  ### ##### ###     ###################################################
+echo( #### ##### ####    ##                                               ##
+echo(##### ##### #####   ## Welcome to the Fortinet Docs Downloader       ##
+echo(                    ##                                               ##
+echo(#####       #####   ###################################################
+echo(#####       #####   ##                                               ##
+echo(#####       #####   ## Discover and download Fortinet documentation  ##
+echo(                    ## directly from docs.fortinet.com                ##
+echo(##### ##### #####   ## Windows native: cmd.exe + curl.exe only       ##
+echo( #### ##### ####    ## v%APP_VERSION%                                         ##
+echo(  ### ##### ###     ###################################################
 exit /b 0
