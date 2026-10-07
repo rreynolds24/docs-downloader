@@ -76,4 +76,4 @@ run.bat doctor
 
 v0.0.1 intentionally supports one product/version page at a time. All-version crawling, document-type filters, manifests, and delta/update mode are planned after restricted-workstation validation.
 
-See `HANDOFF.md` and `docs/ARCHITECTURE.md` for current project state and design details.
+See `docs/ARCHITECTURE.md` for implementation and design details.
