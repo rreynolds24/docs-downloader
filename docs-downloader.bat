@@ -2,7 +2,7 @@
 setlocal EnableExtensions EnableDelayedExpansion
 cd /d "%~dp0"
 
-set "APP_VERSION=0.0.1"
+set "APP_VERSION=0.0.2"
 set "BASE_URL=https://docs.fortinet.com"
 set "RUNTIME=%~dp0runtime"
 set "TEMP_DIR=%RUNTIME%\temp"
@@ -35,7 +35,7 @@ if not "%~1"=="" (
 cls
 call :banner
 echo.
-echo   1. Download PDFs for a Fortinet product/version URL
+echo   1. Download PDFs for a Fortinet product URL
 echo   2. Inventory PDFs without downloading
 echo   3. Doctor / environment check
 echo   4. Exit
@@ -57,7 +57,7 @@ goto :menu
 
 :prompt_url
 echo.
-set /p "TARGET_URL=Paste Fortinet product/version URL: "
+set /p "TARGET_URL=Paste Fortinet product URL: "
 goto :dispatch
 
 :dispatch
@@ -66,9 +66,9 @@ if not defined TARGET_URL (
   exit /b 2
 )
 
-echo "%TARGET_URL%" | findstr /i /b /c:"https://docs.fortinet.com/product/" >nul
-if errorlevel 1 (
-  echo [FAIL] v0.0.1 accepts product/version URLs beginning with:
+set "URL_PREFIX=%TARGET_URL:~0,34%"
+if /i not "%URL_PREFIX%"=="https://docs.fortinet.com/product/" (
+  echo [FAIL] URL must begin with:
   echo        https://docs.fortinet.com/product/
   exit /b 2
 )
