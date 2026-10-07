@@ -1,0 +1,43 @@
+name: Windows validation
+
+on:
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  validate:
+    runs-on: windows-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install and doctor
+        shell: cmd
+        run: |
+          call install.bat
+          if errorlevel 1 exit /b %errorlevel%
+          call run.bat doctor
+          if errorlevel 1 exit /b %errorlevel%
+
+      - name: Parser self-test
+        shell: cmd
+        run: |
+          call run.bat selftest
+          if errorlevel 1 exit /b %errorlevel%
+
+      - name: Live FortiPAM 7.0 inventory
+        shell: cmd
+        run: |
+          call run.bat inventory https://docs.fortinet.com/product/fortipam/7.0
+          if errorlevel 1 exit /b %errorlevel%
+
+      - name: Live FortiPAM 7.0 download
+        shell: cmd
+        run: |
+          call run.bat download https://docs.fortinet.com/product/fortipam/7.0
+          if errorlevel 1 exit /b %errorlevel%
+          for %%F in (runtime\downloads\*.pdf) do if %%~zF LEQ 0 exit /b 20
+          dir /b runtime\downloads\*.pdf
