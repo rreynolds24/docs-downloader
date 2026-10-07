@@ -41,3 +41,22 @@ jobs:
           if errorlevel 1 exit /b %errorlevel%
           for %%F in (runtime\downloads\*.pdf) do if %%~zF LEQ 0 exit /b 20
           dir /b runtime\downloads\*.pdf
+
+      - name: Diagnostic FortiWeb markup
+        shell: cmd
+        run: |
+          curl.exe -L --fail --silent --show-error https://docs.fortinet.com/product/fortiweb -o fortiweb-root.html
+          echo ==== ROOT document lines ====
+          findstr /i /n /c:"/document/" fortiweb-root.html
+          echo ROOT_FINDSTR_RC=%ERRORLEVEL%
+
+          curl.exe -L --fail --silent --show-error https://docs.fortinet.com/product/fortiweb/8.0.1 -o fortiweb-801.html
+          echo ==== 8.0.1 document lines ====
+          findstr /i /n /c:"/document/" fortiweb-801.html
+          echo FWB801_FINDSTR_RC=%ERRORLEVEL%
+
+          curl.exe -L --fail --silent --show-error https://docs.fortinet.com/product/fortiweb/7.6.6 -o fortiweb-766.html
+          echo ==== 7.6.6 document lines ====
+          findstr /i /n /c:"/document/" fortiweb-766.html
+          echo FWB766_FINDSTR_RC=%ERRORLEVEL%
+          exit /b 0
