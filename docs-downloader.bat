@@ -2,7 +2,7 @@
 setlocal EnableExtensions EnableDelayedExpansion
 cd /d "%~dp0"
 
-set "APP_VERSION=0.0.3"
+set "APP_VERSION=0.0.4"
 set "BASE_URL=https://docs.fortinet.com"
 set "RUNTIME=%~dp0runtime"
 set "TEMP_DIR=%RUNTIME%\temp"
@@ -10,11 +10,14 @@ set "DOWNLOAD_DIR=%RUNTIME%\downloads"
 set "PRODUCT_HTML=%TEMP_DIR%\product.html"
 set "DOC_HTML=%TEMP_DIR%\document.html"
 set "DOC_LIST=%TEMP_DIR%\documents.txt"
+set "PRODUCT_MATCHES=%TEMP_DIR%\product-matches.txt"
+set "PDF_MATCHES=%TEMP_DIR%\pdf-matches.txt"
 
 if not exist "%TEMP_DIR%" mkdir "%TEMP_DIR%"
 if not exist "%DOWNLOAD_DIR%" mkdir "%DOWNLOAD_DIR%"
 
 if /i "%~1"=="doctor" goto :doctor
+if /i "%~1"=="selftest" goto :selftest
 if /i "%~1"=="inventory" (
   set "MODE=inventory"
   set "TARGET_URL=%~2"
@@ -85,14 +88,8 @@ if errorlevel 1 (
   exit /b 3
 )
 
-> "%DOC_LIST%" (
-  for /f "usebackq tokens=2 delims=^"" %%A in ('findstr /i /c:"/document/" "%PRODUCT_HTML%"') do (
-    set "CANDIDATE=%%A"
-    if /i "!CANDIDATE:~0,10!"=="/document/" echo(!CANDIDATE!
-  )
-)
-
-for %%A in ("%DOC_LIST%") do if %%~zA==0 (
+call :extract_document_links "%PRODUCT_HTML%" "%DOC_LIST%"
+if errorlevel 1 (
   echo [FAIL] No document links were discovered on the product page.
   echo        Fortinet may have changed the page structure.
   exit /b 4
@@ -112,7 +109,7 @@ for /f "usebackq delims=" %%D in ("%DOC_LIST%") do (
   set "PDF_NAME="
   set "DOC_SLUG="
 
-  for %%S in (!DOC_PATH:/= !) do set "DOC_SLUG=%%S"
+  for %%S in ("!DOC_PATH:/=\!") do set "DOC_SLUG=%%~nxS"
 
   echo.
   echo [INFO] !TOTAL!: !DOC_SLUG!
@@ -121,16 +118,13 @@ for /f "usebackq delims=" %%D in ("%DOC_LIST%") do (
     echo [WARN] Could not retrieve document page: !DOC_URL!
     set /a FAILED+=1
   ) else (
-    for /f "usebackq tokens=6 delims=^"" %%P in ('findstr /i /c:"reader-pdf" "%DOC_HTML%"') do (
-      if not defined PDF_URL set "PDF_URL=%%P"
-    )
-
-    if not defined PDF_URL (
+    call :extract_pdf_url "%DOC_HTML%"
+    if errorlevel 1 (
       echo [WARN] PDF link not found on document page.
       set /a FAILED+=1
     ) else (
       set /a RESOLVED+=1
-      for %%F in (!PDF_URL:/= !) do set "PDF_NAME=%%F"
+      for %%F in ("!PDF_URL:/=\!") do set "PDF_NAME=%%~nxF"
 
       echo [OK]   !PDF_NAME!
       echo        !PDF_URL!
@@ -142,7 +136,14 @@ for /f "usebackq delims=" %%D in ("%DOC_LIST%") do (
           echo [WARN] Download failed: !PDF_NAME!
           set /a FAILED+=1
         ) else (
-          echo [OK]   Saved: %DOWNLOAD_DIR%\!PDF_NAME!
+          for %%Z in ("%DOWNLOAD_DIR%\!PDF_NAME!") do (
+            if %%~zZ LEQ 0 (
+              echo [WARN] Downloaded file is empty: !PDF_NAME!
+              set /a FAILED+=1
+            ) else (
+              echo [OK]   Saved: %DOWNLOAD_DIR%\!PDF_NAME!
+            )
+          )
         )
       )
     )
@@ -159,6 +160,104 @@ echo ------------------------------------------------------------
 
 if !RESOLVED! EQU 0 exit /b 5
 if !FAILED! GTR 0 exit /b 6
+exit /b 0
+
+:extract_document_links
+set "SOURCE_HTML=%~1"
+set "DEST_LIST=%~2"
+> "%PRODUCT_MATCHES%" findstr /i /c:"/document/" "%SOURCE_HTML%"
+if errorlevel 1 (
+  > "%DEST_LIST%" type nul
+  exit /b 1
+)
+
+> "%DEST_LIST%" (
+  for /f "usebackq tokens=2 delims=^"" %%A in ("%PRODUCT_MATCHES%") do (
+    set "CANDIDATE=%%A"
+    if /i "!CANDIDATE:~0,10!"=="/document/" echo(!CANDIDATE!
+  )
+)
+
+for %%A in ("%DEST_LIST%") do if %%~zA LEQ 0 exit /b 1
+exit /b 0
+
+:extract_pdf_url
+set "SOURCE_HTML=%~1"
+set "PDF_URL="
+> "%PDF_MATCHES%" findstr /i /c:"reader-pdf" "%SOURCE_HTML%"
+if errorlevel 1 exit /b 1
+
+for /f "usebackq tokens=2,4,6,8,10 delims=^"" %%A in ("%PDF_MATCHES%") do (
+  set "CANDIDATE=%%A"
+  if /i "!CANDIDATE:~0,8!"=="https://" if not defined PDF_URL set "PDF_URL=!CANDIDATE!"
+  set "CANDIDATE=%%B"
+  if /i "!CANDIDATE:~0,8!"=="https://" if not defined PDF_URL set "PDF_URL=!CANDIDATE!"
+  set "CANDIDATE=%%C"
+  if /i "!CANDIDATE:~0,8!"=="https://" if not defined PDF_URL set "PDF_URL=!CANDIDATE!"
+  set "CANDIDATE=%%D"
+  if /i "!CANDIDATE:~0,8!"=="https://" if not defined PDF_URL set "PDF_URL=!CANDIDATE!"
+  set "CANDIDATE=%%E"
+  if /i "!CANDIDATE:~0,8!"=="https://" if not defined PDF_URL set "PDF_URL=!CANDIDATE!"
+)
+
+if not defined PDF_URL exit /b 1
+exit /b 0
+
+:selftest
+call :banner
+echo.
+echo [INFO] Running parser self-test under cmd.exe...
+
+set "FIXTURE_PRODUCT=%~dp0tests\fixtures\product.html"
+set "FIXTURE_DOCUMENT=%~dp0tests\fixtures\document.html"
+set "SELFTEST_LIST=%TEMP_DIR%\selftest-documents.txt"
+
+if not exist "%FIXTURE_PRODUCT%" (
+  echo [FAIL] Missing product fixture.
+  exit /b 10
+)
+if not exist "%FIXTURE_DOCUMENT%" (
+  echo [FAIL] Missing document fixture.
+  exit /b 10
+)
+
+call :extract_document_links "%FIXTURE_PRODUCT%" "%SELFTEST_LIST%"
+if errorlevel 1 (
+  echo [FAIL] Product fixture parser failed.
+  exit /b 11
+)
+
+set /a SELFTEST_COUNT=0
+set "FIRST_DOC="
+for /f "usebackq delims=" %%D in ("%SELFTEST_LIST%") do (
+  set /a SELFTEST_COUNT+=1
+  if not defined FIRST_DOC set "FIRST_DOC=%%D"
+)
+
+if not "!SELFTEST_COUNT!"=="2" (
+  echo [FAIL] Expected 2 document links, got !SELFTEST_COUNT!.
+  exit /b 12
+)
+
+if /i not "!FIRST_DOC!"=="/document/example/7.0/administration-guide" (
+  echo [FAIL] First document link was not parsed correctly.
+  exit /b 13
+)
+
+call :extract_pdf_url "%FIXTURE_DOCUMENT%"
+if errorlevel 1 (
+  echo [FAIL] Document fixture PDF parser failed.
+  exit /b 14
+)
+
+if /i not "!PDF_URL!"=="https://fortinetweb.s3.amazonaws.com/docs.fortinet.com/v2/attachments/test/FortiPAM-7.0-Administration_Guide.pdf" (
+  echo [FAIL] PDF URL was not parsed correctly.
+  exit /b 15
+)
+
+echo [PASS] Product document-link parser
+echo [PASS] Document reader-pdf parser
+echo [PASS] cmd.exe parser self-test
 exit /b 0
 
 :doctor_menu
