@@ -187,31 +187,16 @@ set "PDF_URL="
 > "%PDF_MATCHES%" findstr /i /c:"reader-pdf" "%SOURCE_HTML%"
 if errorlevel 1 exit /b 1
 
-for /f usebackq^ tokens^=2,4,6,8,10,12,14^ delims^=^" %%A in ("%PDF_MATCHES%") do (
-  set "HAS_READER_ID=0"
-  set "URL_CANDIDATE="
+set "HAS_READER_ID=0"
+for /f usebackq^ tokens^=4^ delims^=^" %%A in ("%PDF_MATCHES%") do (
+  if /i "%%A"=="reader-pdf" set "HAS_READER_ID=1"
+)
+
+if not "!HAS_READER_ID!"=="1" exit /b 1
+
+for /f usebackq^ tokens^=6^ delims^=^" %%A in ("%PDF_MATCHES%") do (
   set "CANDIDATE=%%A"
-  if /i "!CANDIDATE!"=="reader-pdf" set "HAS_READER_ID=1"
-  if /i "!CANDIDATE:~0,8!"=="https://" set "URL_CANDIDATE=!CANDIDATE!"
-  set "CANDIDATE=%%B"
-  if /i "!CANDIDATE!"=="reader-pdf" set "HAS_READER_ID=1"
-  if /i "!CANDIDATE:~0,8!"=="https://" set "URL_CANDIDATE=!CANDIDATE!"
-  set "CANDIDATE=%%C"
-  if /i "!CANDIDATE!"=="reader-pdf" set "HAS_READER_ID=1"
-  if /i "!CANDIDATE:~0,8!"=="https://" set "URL_CANDIDATE=!CANDIDATE!"
-  set "CANDIDATE=%%D"
-  if /i "!CANDIDATE!"=="reader-pdf" set "HAS_READER_ID=1"
-  if /i "!CANDIDATE:~0,8!"=="https://" set "URL_CANDIDATE=!CANDIDATE!"
-  set "CANDIDATE=%%E"
-  if /i "!CANDIDATE!"=="reader-pdf" set "HAS_READER_ID=1"
-  if /i "!CANDIDATE:~0,8!"=="https://" set "URL_CANDIDATE=!CANDIDATE!"
-  set "CANDIDATE=%%F"
-  if /i "!CANDIDATE!"=="reader-pdf" set "HAS_READER_ID=1"
-  if /i "!CANDIDATE:~0,8!"=="https://" set "URL_CANDIDATE=!CANDIDATE!"
-  set "CANDIDATE=%%G"
-  if /i "!CANDIDATE!"=="reader-pdf" set "HAS_READER_ID=1"
-  if /i "!CANDIDATE:~0,8!"=="https://" set "URL_CANDIDATE=!CANDIDATE!"
-  if "!HAS_READER_ID!"=="1" if defined URL_CANDIDATE if not defined PDF_URL set "PDF_URL=!URL_CANDIDATE!"
+  if /i "!CANDIDATE:~0,8!"=="https://" if not defined PDF_URL set "PDF_URL=!CANDIDATE!"
 )
 
 if not defined PDF_URL exit /b 1
