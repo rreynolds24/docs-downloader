@@ -1,0 +1,40 @@
+{
+  "schema_version": "1.0",
+  "project_id": "docs-downloader",
+  "project_name": "Fortinet Docs Downloader",
+  "state": "waiting",
+  "last_checkpoint": "2026-10-07T13:15:00+11:00",
+  "last_progress_at": "2026-10-07T13:15:00+11:00",
+  "current_objective": "Validate v0.0.1 on the restricted Windows workstation and confirm Fortinet PDF discovery/download behavior.",
+  "recently_completed": [
+    "Defined a PowerShell-free Windows native architecture using cmd.exe, curl.exe, and findstr.exe.",
+    "Implemented product-page discovery, reader-pdf resolution, PDF download, menu, and doctor flows.",
+    "Applied the Fortinet terminal ASCII-art convention."
+  ],
+  "next_action": "Run install.bat and then run.bat inventory against the FortiManagement Cloud 26.3 URL on the restricted Windows workstation.",
+  "blocked": false,
+  "blockers": [],
+  "requires_user_decision": false,
+  "user_decision": null,
+  "tests": {
+    "status": "partial",
+    "summary": "HAR-derived parser assumptions validated; clean restricted-Windows execution remains pending."
+  },
+  "git": {
+    "branch": "dev/v0.0.1",
+    "dirty": false,
+    "head": null
+  },
+  "worker": {
+    "thread_id": null,
+    "last_run_id": null,
+    "last_run_status": null
+  },
+  "recommended_action": "wait",
+  "authority": {
+    "handoff": "HANDOFF.md",
+    "todo": "TODO.md",
+    "authoritative_state": ".codex/AUTHORITATIVE_STATE.md"
+  },
+  "updated_by": "project-session-manager-v3"
+}
