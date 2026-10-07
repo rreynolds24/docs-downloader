@@ -165,18 +165,16 @@ exit /b 0
 :extract_document_links
 set "SOURCE_HTML=%~1"
 set "DEST_LIST=%~2"
-> "%PRODUCT_MATCHES%" findstr /i /c:"/document/" "%SOURCE_HTML%"
+findstr /i /c:"<a href=" "%SOURCE_HTML%" | findstr /i /c:"/document/" > "%PRODUCT_MATCHES%"
 if errorlevel 1 (
   > "%DEST_LIST%" type nul
   exit /b 1
 )
 
 > "%DEST_LIST%" (
-  for /f "usebackq tokens=1,2 delims=^"" %%A in ("%PRODUCT_MATCHES%") do (
-    set "PREFIX=%%A"
-    set "CANDIDATE=%%B"
-    for /f "tokens=* delims= " %%P in ("!PREFIX!") do set "PREFIX=%%P"
-    if /i "!PREFIX!"=="<a href=" if /i "!CANDIDATE:~0,10!"=="/document/" echo(!CANDIDATE!
+  for /f "usebackq tokens=2 delims=^"" %%A in ("%PRODUCT_MATCHES%") do (
+    set "CANDIDATE=%%A"
+    if /i "!CANDIDATE:~0,10!"=="/document/" echo(!CANDIDATE!
   )
 )
 
