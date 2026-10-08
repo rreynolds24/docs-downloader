@@ -95,74 +95,7 @@ if errorlevel 1 (
   exit /b 3
 )
 
-call :get_remote_etag
-set "REMOTE_ETAG="
-curl.exe -L --fail --silent --show-error --head --connect-timeout 20 --max-time 120 "%~1" -o "%HEADER_FILE%" >nul 2>&1
-if errorlevel 1 exit /b 0
-for /f "tokens=1,* delims=:" %%A in ('findstr /i /b /c:"ETag:" "%HEADER_FILE%"') do (
-  set "REMOTE_ETAG=%%B"
-)
-for /f "tokens=* delims= " %%A in ("!REMOTE_ETAG!") do set "REMOTE_ETAG=%%A"
-set "REMOTE_ETAG=!REMOTE_ETAG:"=!"
-exit /b 0
-
-:classify_download
-set "TRACK_STATUS=NEW"
-set "PREV_PDF_URL="
-set "PREV_PDF_NAME="
-set "PREV_ETAG="
-
-call :lookup_manifest "%~1"
-if errorlevel 1 exit /b 0
-
-if /i not "!PREV_PDF_URL!"=="%~2" (
-  set "TRACK_STATUS=CHANGED"
-  exit /b 0
-)
-if /i not "!PREV_PDF_NAME!"=="%~3" (
-  set "TRACK_STATUS=CHANGED"
-  exit /b 0
-)
-if defined REMOTE_ETAG if defined PREV_ETAG if /i not "!PREV_ETAG!"=="%~4" (
-  set "TRACK_STATUS=CHANGED"
-  exit /b 0
-)
-if not exist "%DOWNLOAD_DIR%\!PREV_PDF_NAME!" (
-  set "TRACK_STATUS=MISSING_LOCAL"
-  exit /b 0
-)
-set "TRACK_STATUS=UNCHANGED"
-exit /b 0
-
-:lookup_manifest
-set "PREV_PDF_URL="
-set "PREV_PDF_NAME="
-set "PREV_ETAG="
-if not exist "%MANIFEST%" exit /b 1
-for /f "usebackq tokens=1,2,3,4 delims=|" %%A in ("%MANIFEST%") do (
-  if /i "%%A"=="%~1" (
-    set "PREV_PDF_URL=%%B"
-    set "PREV_PDF_NAME=%%C"
-    set "PREV_ETAG=%%D"
-    exit /b 0
-  )
-)
-exit /b 1
-
-:write_manifest
-> "%MANIFEST_TMP%" (
-  if exist "%MANIFEST%" (
-    for /f "usebackq tokens=1,* delims=|" %%A in ("%MANIFEST%") do (
-      if /i not "%%A"=="%~1" echo(%%A^|%%B
-    )
-  )
-  echo(%~1^|%~2^|%~3^|%~4
-)
-move /y "%MANIFEST_TMP%" "%MANIFEST%" >nul
-if errorlevel 1 exit /b 1
-exit /b 0
-
-:extract_document_links "%PRODUCT_HTML%" "%DOC_LIST%"
+call :extract_document_links "%PRODUCT_HTML%" "%DOC_LIST%"
 if errorlevel 1 (
   echo [FAIL] No document links were discovered on the product page.
   echo        Fortinet may have changed the page structure.
@@ -269,6 +202,73 @@ echo ------------------------------------------------------------
 
 if !RESOLVED! EQU 0 exit /b 5
 if !FAILED! GTR 0 exit /b 6
+exit /b 0
+
+:get_remote_etag
+set "REMOTE_ETAG="
+curl.exe -L --fail --silent --show-error --head --connect-timeout 20 --max-time 120 "%~1" -o "%HEADER_FILE%" >nul 2>&1
+if errorlevel 1 exit /b 0
+for /f "tokens=1,* delims=:" %%A in ('findstr /i /b /c:"ETag:" "%HEADER_FILE%"') do (
+  set "REMOTE_ETAG=%%B"
+)
+for /f "tokens=* delims= " %%A in ("!REMOTE_ETAG!") do set "REMOTE_ETAG=%%A"
+set "REMOTE_ETAG=!REMOTE_ETAG:"=!"
+exit /b 0
+
+:classify_download
+set "TRACK_STATUS=NEW"
+set "PREV_PDF_URL="
+set "PREV_PDF_NAME="
+set "PREV_ETAG="
+
+call :lookup_manifest "%~1"
+if errorlevel 1 exit /b 0
+
+if /i not "!PREV_PDF_URL!"=="%~2" (
+  set "TRACK_STATUS=CHANGED"
+  exit /b 0
+)
+if /i not "!PREV_PDF_NAME!"=="%~3" (
+  set "TRACK_STATUS=CHANGED"
+  exit /b 0
+)
+if defined REMOTE_ETAG if defined PREV_ETAG if /i not "!PREV_ETAG!"=="%~4" (
+  set "TRACK_STATUS=CHANGED"
+  exit /b 0
+)
+if not exist "%DOWNLOAD_DIR%\!PREV_PDF_NAME!" (
+  set "TRACK_STATUS=MISSING_LOCAL"
+  exit /b 0
+)
+set "TRACK_STATUS=UNCHANGED"
+exit /b 0
+
+:lookup_manifest
+set "PREV_PDF_URL="
+set "PREV_PDF_NAME="
+set "PREV_ETAG="
+if not exist "%MANIFEST%" exit /b 1
+for /f "usebackq tokens=1,2,3,4 delims=|" %%A in ("%MANIFEST%") do (
+  if /i "%%A"=="%~1" (
+    set "PREV_PDF_URL=%%B"
+    set "PREV_PDF_NAME=%%C"
+    set "PREV_ETAG=%%D"
+    exit /b 0
+  )
+)
+exit /b 1
+
+:write_manifest
+> "%MANIFEST_TMP%" (
+  if exist "%MANIFEST%" (
+    for /f "usebackq tokens=1,* delims=|" %%A in ("%MANIFEST%") do (
+      if /i not "%%A"=="%~1" echo(%%A^|%%B
+    )
+  )
+  echo(%~1^|%~2^|%~3^|%~4
+)
+move /y "%MANIFEST_TMP%" "%MANIFEST%" >nul
+if errorlevel 1 exit /b 1
 exit /b 0
 
 :extract_document_links
