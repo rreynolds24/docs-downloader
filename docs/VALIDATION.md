@@ -41,3 +41,13 @@ The validated product page resolves:
 ## Release discipline
 
 Parser changes must continue to pass the Windows validation workflow before merge. Static review alone is not sufficient for CMD parsing changes.
+
+
+## v0.0.6 multi-product regression coverage
+
+Windows CI now validates:
+- FortiPAM 7.0 inventory and full PDF download
+- FortiWeb root inventory using class-before-href document anchors
+- FortiCamera root inventory using `/document/forticamera/latest/...` paths
+
+A document page with no `reader-pdf` target is treated as a non-fatal skip and is counted separately from warnings/failures.

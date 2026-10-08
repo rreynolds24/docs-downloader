@@ -41,3 +41,15 @@ jobs:
           if errorlevel 1 exit /b %errorlevel%
           for %%F in (runtime\downloads\*.pdf) do if %%~zF LEQ 0 exit /b 20
           dir /b runtime\downloads\*.pdf
+
+      - name: Live FortiCamera root inventory
+        shell: cmd
+        run: |
+          call run.bat inventory https://docs.fortinet.com/product/forticamera
+          if errorlevel 1 exit /b %errorlevel%
+
+      - name: Live FortiWeb root inventory
+        shell: cmd
+        run: |
+          call run.bat inventory https://docs.fortinet.com/product/fortiweb/
+          if errorlevel 1 exit /b %errorlevel%

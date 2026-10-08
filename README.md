@@ -4,9 +4,9 @@ Portable Windows-native CLI for discovering and downloading PDF documentation fr
 
 ## Status
 
-**Current release: v0.0.5**
+**Current release: v0.0.6**
 
-The core workflow is now validated end to end on both:
+The core workflow is validated end to end on both:
 
 - GitHub Actions running Windows Server 2025 with the real `cmd.exe` Batch implementation.
 - The target restricted Windows workstation.
@@ -144,3 +144,33 @@ Not yet implemented:
 - de-duplication across multiple requested versions
 
 See `docs/ARCHITECTURE.md` and `docs/VALIDATION.md` for implementation and validation details.
+
+
+## FortiWeb note
+
+FortiWeb product pages use document anchors where attributes such as `class` can appear before `href`. v0.0.6 discovers relative `/document/...` targets regardless of that attribute ordering and de-duplicates repeated links.
+
+Use the product root:
+
+```bat
+run.bat inventory https://docs.fortinet.com/product/fortiweb/
+```
+
+The Windows CI suite includes this FortiWeb root inventory as a regression test.
+
+
+## FortiCamera note
+
+FortiCamera uses the same class-before-href anchor pattern as FortiWeb and publishes document paths under `/document/forticamera/latest/...`. v0.0.6 supports this structure directly.
+
+Use:
+
+```bat
+run.bat inventory https://docs.fortinet.com/product/forticamera
+```
+
+The Windows CI suite includes FortiCamera root inventory as a permanent regression test.
+
+## Documents without PDFs
+
+Some Fortinet product pages contain documentation entries that do not expose a `reader-pdf` target. v0.0.6 reports these as `No PDF available` and skips them without treating them as parser/download failures. Network errors, broken document pages, failed downloads, and zero-byte PDFs remain failures.

@@ -2,7 +2,7 @@
 setlocal EnableExtensions EnableDelayedExpansion
 cd /d "%~dp0"
 
-set "APP_VERSION=0.0.5"
+set "APP_VERSION=0.0.6"
 set "BASE_URL=https://docs.fortinet.com"
 set "RUNTIME=%~dp0runtime"
 set "TEMP_DIR=%RUNTIME%\temp"
@@ -10,6 +10,7 @@ set "DOWNLOAD_DIR=%RUNTIME%\downloads"
 set "PRODUCT_HTML=%TEMP_DIR%\product.html"
 set "DOC_HTML=%TEMP_DIR%\document.html"
 set "DOC_LIST=%TEMP_DIR%\documents.txt"
+set "RAW_DOC_LIST=%TEMP_DIR%\documents-raw.txt"
 set "PRODUCT_MATCHES=%TEMP_DIR%\product-matches.txt"
 set "PDF_MATCHES=%TEMP_DIR%\pdf-matches.txt"
 
@@ -100,6 +101,7 @@ echo [INFO] Resolving PDF targets...
 set /a TOTAL=0
 set /a RESOLVED=0
 set /a FAILED=0
+set /a NO_PDF=0
 
 for /f "usebackq delims=" %%D in ("%DOC_LIST%") do (
   set /a TOTAL+=1
@@ -120,8 +122,8 @@ for /f "usebackq delims=" %%D in ("%DOC_LIST%") do (
   ) else (
     call :extract_pdf_url "%DOC_HTML%"
     if errorlevel 1 (
-      echo [WARN] PDF link not found on document page.
-      set /a FAILED+=1
+      echo [INFO] No PDF available for this document; skipping.
+      set /a NO_PDF+=1
     ) else (
       set /a RESOLVED+=1
       for %%F in ("!PDF_URL:/=\!") do set "PDF_NAME=%%~nxF"
@@ -154,6 +156,7 @@ echo.
 echo ------------------------------------------------------------
 echo Documents discovered : !TOTAL!
 echo PDF targets resolved  : !RESOLVED!
+echo No PDF available      : !NO_PDF!
 echo Warnings/failures     : !FAILED!
 if /i "!MODE!"=="download" echo Download directory    : %DOWNLOAD_DIR%
 echo ------------------------------------------------------------
@@ -165,17 +168,41 @@ exit /b 0
 :extract_document_links
 set "SOURCE_HTML=%~1"
 set "DEST_LIST=%~2"
-findstr /i /c:"<a href=" "%SOURCE_HTML%" | findstr /i /c:"/document/" > "%PRODUCT_MATCHES%"
+
+findstr /i /c:"<a " "%SOURCE_HTML%" | findstr /i /c:"/document/" > "%PRODUCT_MATCHES%"
 if errorlevel 1 (
   > "%DEST_LIST%" type nul
   exit /b 1
 )
 
-> "%DEST_LIST%" (
-  for /f usebackq^ tokens^=2^ delims^=^" %%A in ("%PRODUCT_MATCHES%") do (
-    set "CANDIDATE=%%A"
-    if /i "!CANDIDATE:~0,10!"=="/document/" echo(!CANDIDATE!
-  )
+> "%RAW_DOC_LIST%" type nul
+
+for /f usebackq^ tokens^=2^ delims^=^" %%A in ("%PRODUCT_MATCHES%") do (
+  set "CANDIDATE=%%A"
+  if /i "!CANDIDATE:~0,10!"=="/document/" echo(!CANDIDATE!>>"%RAW_DOC_LIST%"
+)
+for /f usebackq^ tokens^=4^ delims^=^" %%A in ("%PRODUCT_MATCHES%") do (
+  set "CANDIDATE=%%A"
+  if /i "!CANDIDATE:~0,10!"=="/document/" echo(!CANDIDATE!>>"%RAW_DOC_LIST%"
+)
+for /f usebackq^ tokens^=6^ delims^=^" %%A in ("%PRODUCT_MATCHES%") do (
+  set "CANDIDATE=%%A"
+  if /i "!CANDIDATE:~0,10!"=="/document/" echo(!CANDIDATE!>>"%RAW_DOC_LIST%"
+)
+for /f usebackq^ tokens^=8^ delims^=^" %%A in ("%PRODUCT_MATCHES%") do (
+  set "CANDIDATE=%%A"
+  if /i "!CANDIDATE:~0,10!"=="/document/" echo(!CANDIDATE!>>"%RAW_DOC_LIST%"
+)
+for /f usebackq^ tokens^=10^ delims^=^" %%A in ("%PRODUCT_MATCHES%") do (
+  set "CANDIDATE=%%A"
+  if /i "!CANDIDATE:~0,10!"=="/document/" echo(!CANDIDATE!>>"%RAW_DOC_LIST%"
+)
+
+> "%DEST_LIST%" type nul
+for /f "usebackq delims=" %%A in ("%RAW_DOC_LIST%") do (
+  set "CANDIDATE=%%A"
+  findstr /x /l /c:"!CANDIDATE!" "%DEST_LIST%" >nul 2>&1
+  if errorlevel 1 echo(!CANDIDATE!>>"%DEST_LIST%"
 )
 
 for %%A in ("%DEST_LIST%") do if %%~zA LEQ 0 exit /b 1
@@ -233,8 +260,8 @@ for /f "usebackq delims=" %%D in ("%SELFTEST_LIST%") do (
   if not defined FIRST_DOC set "FIRST_DOC=%%D"
 )
 
-if not "!SELFTEST_COUNT!"=="2" (
-  echo [FAIL] Expected 2 document links, got !SELFTEST_COUNT!.
+if not "!SELFTEST_COUNT!"=="3" (
+  echo [FAIL] Expected 3 unique document links, got !SELFTEST_COUNT!.
   exit /b 12
 )
 
