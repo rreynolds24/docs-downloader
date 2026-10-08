@@ -157,3 +157,20 @@ run.bat inventory https://docs.fortinet.com/product/fortiweb/
 ```
 
 The Windows CI suite includes this FortiWeb root inventory as a regression test.
+
+
+## FortiCamera note
+
+FortiCamera uses the same class-before-href anchor pattern as FortiWeb and publishes document paths under `/document/forticamera/latest/...`. v0.0.6 supports this structure directly.
+
+Use:
+
+```bat
+run.bat inventory https://docs.fortinet.com/product/forticamera
+```
+
+The Windows CI suite includes FortiCamera root inventory as a permanent regression test.
+
+## Documents without PDFs
+
+Some Fortinet product pages contain documentation entries that do not expose a `reader-pdf` target. v0.0.6 reports these as `No PDF available` and skips them without treating them as parser/download failures. Network errors, broken document pages, failed downloads, and zero-byte PDFs remain failures.
