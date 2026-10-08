@@ -42,12 +42,11 @@ jobs:
           for %%F in (runtime\downloads\*.pdf) do if %%~zF LEQ 0 exit /b 20
           dir /b runtime\downloads\*.pdf
 
-      - name: Inspect FortiCamera root markup
+      - name: Live FortiCamera root inventory
         shell: cmd
         run: |
-          curl.exe -L --fail --silent --show-error https://docs.fortinet.com/product/forticamera -o forticamera.html
-          findstr /i /n /c:"/document/" forticamera.html
-          exit /b 0
+          call run.bat inventory https://docs.fortinet.com/product/forticamera
+          if errorlevel 1 exit /b %errorlevel%
 
       - name: Live FortiWeb root inventory
         shell: cmd
