@@ -34,13 +34,29 @@ jobs:
           call run.bat inventory https://docs.fortinet.com/product/fortipam/7.0
           if errorlevel 1 exit /b %errorlevel%
 
-      - name: Live FortiPAM 7.0 download
+      - name: Live FortiPAM 7.0 first tracked download
         shell: cmd
         run: |
           call run.bat download https://docs.fortinet.com/product/fortipam/7.0
           if errorlevel 1 exit /b %errorlevel%
           for %%F in (runtime\downloads\*.pdf) do if %%~zF LEQ 0 exit /b 20
-          dir /b runtime\downloads\*.pdf
+          if not exist runtime\state\downloads.db exit /b 21
+          findstr /c:"https://docs.fortinet.com/document/fortipam/" runtime\state\downloads.db >nul
+          if errorlevel 1 exit /b 22
+
+      - name: Live FortiPAM 7.0 second download skips unchanged PDFs
+        shell: cmd
+        run: |
+          call run.bat download https://docs.fortinet.com/product/fortipam/7.0 > tracking-second.txt
+          set RC=%ERRORLEVEL%
+          type tracking-second.txt
+          if not "%RC%"=="0" exit /b %RC%
+          findstr /c:"Downloaded/updated     : 0" tracking-second.txt >nul
+          if errorlevel 1 exit /b 23
+          findstr /c:"Unchanged/skipped     : 6" tracking-second.txt >nul
+          if errorlevel 1 exit /b 24
+          findstr /c:"Unchanged PDFs        : 6" tracking-second.txt >nul
+          if errorlevel 1 exit /b 25
 
       - name: Live FortiCamera root inventory
         shell: cmd
