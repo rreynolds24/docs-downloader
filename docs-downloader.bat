@@ -232,9 +232,15 @@ if /i not "!PREV_PDF_NAME!"=="%~3" (
   set "TRACK_STATUS=CHANGED"
   exit /b 0
 )
-if defined REMOTE_ETAG if defined PREV_ETAG if /i not "!PREV_ETAG!"=="%~4" (
-  set "TRACK_STATUS=CHANGED"
-  exit /b 0
+if defined REMOTE_ETAG (
+  if not defined PREV_ETAG (
+    set "TRACK_STATUS=CHANGED"
+    exit /b 0
+  )
+  if /i not "!PREV_ETAG!"=="%~4" (
+    set "TRACK_STATUS=CHANGED"
+    exit /b 0
+  )
 )
 if not exist "%DOWNLOAD_DIR%\!PREV_PDF_NAME!" (
   set "TRACK_STATUS=MISSING_LOCAL"
@@ -389,7 +395,53 @@ if /i not "!PDF_URL!"=="https://fortinetweb.s3.amazonaws.com/docs.fortinet.com/v
 
 echo [PASS] Product document-link parser
 echo [PASS] Document reader-pdf parser
-echo [PASS] cmd.exe parser self-test
+
+set "ORIGINAL_MANIFEST=%MANIFEST%"
+set "ORIGINAL_DOWNLOAD_DIR=%DOWNLOAD_DIR%"
+set "MANIFEST=%TEMP_DIR%\selftest-downloads.db"
+set "DOWNLOAD_DIR=%TEMP_DIR%\selftest-downloads"
+if not exist "%DOWNLOAD_DIR%" mkdir "%DOWNLOAD_DIR%"
+> "%MANIFEST%" type nul
+> "%DOWNLOAD_DIR%\sample.pdf" echo test
+
+call :write_manifest "https://docs.fortinet.com/document/example/1.0/sample" "https://example.test/sample.pdf" "sample.pdf" "etag-one"
+if errorlevel 1 (
+  echo [FAIL] Tracking manifest write failed.
+  exit /b 16
+)
+
+call :classify_download "https://docs.fortinet.com/document/example/1.0/sample" "https://example.test/sample.pdf" "sample.pdf" "etag-one"
+if /i not "!TRACK_STATUS!"=="UNCHANGED" (
+  echo [FAIL] Tracking expected UNCHANGED, got !TRACK_STATUS!.
+  exit /b 17
+)
+
+call :classify_download "https://docs.fortinet.com/document/example/1.0/sample" "https://example.test/sample.pdf" "sample.pdf" "etag-two"
+if /i not "!TRACK_STATUS!"=="CHANGED" (
+  echo [FAIL] Tracking expected CHANGED, got !TRACK_STATUS!.
+  exit /b 18
+)
+
+del /q "%DOWNLOAD_DIR%\sample.pdf" >nul 2>&1
+call :classify_download "https://docs.fortinet.com/document/example/1.0/sample" "https://example.test/sample.pdf" "sample.pdf" "etag-one"
+if /i not "!TRACK_STATUS!"=="MISSING_LOCAL" (
+  echo [FAIL] Tracking expected MISSING_LOCAL, got !TRACK_STATUS!.
+  exit /b 19
+)
+
+call :classify_download "https://docs.fortinet.com/document/example/1.0/new" "https://example.test/new.pdf" "new.pdf" "etag-new"
+if /i not "!TRACK_STATUS!"=="NEW" (
+  echo [FAIL] Tracking expected NEW, got !TRACK_STATUS!.
+  exit /b 20
+)
+
+set "MANIFEST=%ORIGINAL_MANIFEST%"
+set "DOWNLOAD_DIR=%ORIGINAL_DOWNLOAD_DIR%"
+del /q "%TEMP_DIR%\selftest-downloads.db" >nul 2>&1
+rmdir /s /q "%TEMP_DIR%\selftest-downloads" >nul 2>&1
+
+echo [PASS] Download tracking classifications
+echo [PASS] cmd.exe parser and tracking self-test
 exit /b 0
 
 :doctor_menu
