@@ -2,11 +2,15 @@
 setlocal EnableExtensions EnableDelayedExpansion
 cd /d "%~dp0"
 
-set "APP_VERSION=0.0.6"
+set "APP_VERSION=0.0.7"
 set "BASE_URL=https://docs.fortinet.com"
 set "RUNTIME=%~dp0runtime"
 set "TEMP_DIR=%RUNTIME%\temp"
 set "DOWNLOAD_DIR=%RUNTIME%\downloads"
+set "STATE_DIR=%RUNTIME%\state"
+set "MANIFEST=%STATE_DIR%\downloads.db"
+set "MANIFEST_TMP=%TEMP_DIR%\downloads-db.tmp"
+set "HEADER_FILE=%TEMP_DIR%\pdf-headers.txt"
 set "PRODUCT_HTML=%TEMP_DIR%\product.html"
 set "DOC_HTML=%TEMP_DIR%\document.html"
 set "DOC_LIST=%TEMP_DIR%\documents.txt"
@@ -16,6 +20,8 @@ set "PDF_MATCHES=%TEMP_DIR%\pdf-matches.txt"
 
 if not exist "%TEMP_DIR%" mkdir "%TEMP_DIR%"
 if not exist "%DOWNLOAD_DIR%" mkdir "%DOWNLOAD_DIR%"
+if not exist "%STATE_DIR%" mkdir "%STATE_DIR%"
+if not exist "%MANIFEST%" type nul > "%MANIFEST%"
 
 if /i "%~1"=="doctor" goto :doctor
 if /i "%~1"=="selftest" goto :selftest
@@ -102,6 +108,12 @@ set /a TOTAL=0
 set /a RESOLVED=0
 set /a FAILED=0
 set /a NO_PDF=0
+set /a NEW_COUNT=0
+set /a CHANGED_COUNT=0
+set /a UNCHANGED_COUNT=0
+set /a MISSING_COUNT=0
+set /a DOWNLOADED_COUNT=0
+set /a SKIPPED_COUNT=0
 
 for /f "usebackq delims=" %%D in ("%DOC_LIST%") do (
   set /a TOTAL+=1
@@ -128,22 +140,42 @@ for /f "usebackq delims=" %%D in ("%DOC_LIST%") do (
       set /a RESOLVED+=1
       for %%F in ("!PDF_URL:/=\!") do set "PDF_NAME=%%~nxF"
 
-      echo [OK]   !PDF_NAME!
+      call :get_remote_etag "!PDF_URL!"
+      call :classify_download "!DOC_URL!" "!PDF_URL!" "!PDF_NAME!" "!REMOTE_ETAG!"
+
+      echo [!TRACK_STATUS!] !PDF_NAME!
       echo        !PDF_URL!
 
+      if /i "!TRACK_STATUS!"=="NEW" set /a NEW_COUNT+=1
+      if /i "!TRACK_STATUS!"=="CHANGED" set /a CHANGED_COUNT+=1
+      if /i "!TRACK_STATUS!"=="UNCHANGED" set /a UNCHANGED_COUNT+=1
+      if /i "!TRACK_STATUS!"=="MISSING_LOCAL" set /a MISSING_COUNT+=1
+
       if /i "!MODE!"=="download" (
-        echo [INFO] Downloading...
-        curl.exe -L --fail --show-error --progress-bar --connect-timeout 20 --max-time 1800 "!PDF_URL!" -o "%DOWNLOAD_DIR%\!PDF_NAME!"
-        if errorlevel 1 (
-          echo [WARN] Download failed: !PDF_NAME!
-          set /a FAILED+=1
+        if /i "!TRACK_STATUS!"=="UNCHANGED" (
+          echo [INFO] Already downloaded and unchanged; skipping.
+          set /a SKIPPED_COUNT+=1
         ) else (
-          for %%Z in ("%DOWNLOAD_DIR%\!PDF_NAME!") do (
-            if %%~zZ LEQ 0 (
-              echo [WARN] Downloaded file is empty: !PDF_NAME!
-              set /a FAILED+=1
-            ) else (
-              echo [OK]   Saved: %DOWNLOAD_DIR%\!PDF_NAME!
+          echo [INFO] Downloading...
+          curl.exe -L --fail --show-error --progress-bar --connect-timeout 20 --max-time 1800 "!PDF_URL!" -o "%DOWNLOAD_DIR%\!PDF_NAME!"
+          if errorlevel 1 (
+            echo [WARN] Download failed: !PDF_NAME!
+            set /a FAILED+=1
+          ) else (
+            for %%Z in ("%DOWNLOAD_DIR%\!PDF_NAME!") do (
+              if %%~zZ LEQ 0 (
+                echo [WARN] Downloaded file is empty: !PDF_NAME!
+                set /a FAILED+=1
+              ) else (
+                call :write_manifest "!DOC_URL!" "!PDF_URL!" "!PDF_NAME!" "!REMOTE_ETAG!"
+                if errorlevel 1 (
+                  echo [WARN] Download succeeded but tracking state could not be updated.
+                  set /a FAILED+=1
+                ) else (
+                  set /a DOWNLOADED_COUNT+=1
+                  echo [OK]   Saved and tracked: %DOWNLOAD_DIR%\!PDF_NAME!
+                )
+              )
             )
           )
         )
@@ -157,12 +189,93 @@ echo ------------------------------------------------------------
 echo Documents discovered : !TOTAL!
 echo PDF targets resolved  : !RESOLVED!
 echo No PDF available      : !NO_PDF!
+echo New PDFs              : !NEW_COUNT!
+echo Changed PDFs          : !CHANGED_COUNT!
+echo Unchanged PDFs        : !UNCHANGED_COUNT!
+echo Missing local PDFs    : !MISSING_COUNT!
+if /i "!MODE!"=="download" echo Downloaded/updated     : !DOWNLOADED_COUNT!
+if /i "!MODE!"=="download" echo Unchanged/skipped     : !SKIPPED_COUNT!
 echo Warnings/failures     : !FAILED!
 if /i "!MODE!"=="download" echo Download directory    : %DOWNLOAD_DIR%
+echo Tracking database     : %MANIFEST%
 echo ------------------------------------------------------------
 
 if !RESOLVED! EQU 0 exit /b 5
 if !FAILED! GTR 0 exit /b 6
+exit /b 0
+
+:get_remote_etag
+set "REMOTE_ETAG="
+curl.exe -L --fail --silent --show-error --head --connect-timeout 20 --max-time 120 "%~1" -o "%HEADER_FILE%" >nul 2>&1
+if errorlevel 1 exit /b 0
+for /f "tokens=1,* delims=:" %%A in ('findstr /i /b /c:"ETag:" "%HEADER_FILE%"') do (
+  set "REMOTE_ETAG=%%B"
+)
+for /f "tokens=* delims= " %%A in ("!REMOTE_ETAG!") do set "REMOTE_ETAG=%%A"
+set "REMOTE_ETAG=!REMOTE_ETAG:"=!"
+exit /b 0
+
+:classify_download
+set "TRACK_STATUS=NEW"
+set "CURRENT_ETAG=%~4"
+set "PREV_PDF_URL="
+set "PREV_PDF_NAME="
+set "PREV_ETAG="
+
+call :lookup_manifest "%~1"
+if errorlevel 1 exit /b 0
+
+if /i not "!PREV_PDF_URL!"=="%~2" (
+  set "TRACK_STATUS=CHANGED"
+  exit /b 0
+)
+if /i not "!PREV_PDF_NAME!"=="%~3" (
+  set "TRACK_STATUS=CHANGED"
+  exit /b 0
+)
+if defined CURRENT_ETAG (
+  if not defined PREV_ETAG (
+    set "TRACK_STATUS=CHANGED"
+    exit /b 0
+  )
+  if /i not "!PREV_ETAG!"=="!CURRENT_ETAG!" (
+    set "TRACK_STATUS=CHANGED"
+    exit /b 0
+  )
+)
+if not exist "%DOWNLOAD_DIR%\!PREV_PDF_NAME!" (
+  set "TRACK_STATUS=MISSING_LOCAL"
+  exit /b 0
+)
+set "TRACK_STATUS=UNCHANGED"
+exit /b 0
+
+:lookup_manifest
+set "PREV_PDF_URL="
+set "PREV_PDF_NAME="
+set "PREV_ETAG="
+if not exist "%MANIFEST%" exit /b 1
+for /f "usebackq tokens=1,2,3,4 delims=|" %%A in ("%MANIFEST%") do (
+  if /i "%%A"=="%~1" (
+    set "PREV_PDF_URL=%%B"
+    set "PREV_PDF_NAME=%%C"
+    set "PREV_ETAG=%%D"
+    exit /b 0
+  )
+)
+exit /b 1
+
+:write_manifest
+> "%MANIFEST_TMP%" (
+  if exist "%MANIFEST%" (
+    for /f "usebackq tokens=1,* delims=|" %%A in ("%MANIFEST%") do (
+      if /i not "%%A"=="%~1" echo(%%A^|%%B
+    )
+  )
+  echo(%~1^|%~2^|%~3^|%~4
+)
+move /y "%MANIFEST_TMP%" "%MANIFEST%" >nul
+if errorlevel 1 exit /b 1
 exit /b 0
 
 :extract_document_links
@@ -283,7 +396,53 @@ if /i not "!PDF_URL!"=="https://fortinetweb.s3.amazonaws.com/docs.fortinet.com/v
 
 echo [PASS] Product document-link parser
 echo [PASS] Document reader-pdf parser
-echo [PASS] cmd.exe parser self-test
+
+set "ORIGINAL_MANIFEST=%MANIFEST%"
+set "ORIGINAL_DOWNLOAD_DIR=%DOWNLOAD_DIR%"
+set "MANIFEST=%TEMP_DIR%\selftest-downloads.db"
+set "DOWNLOAD_DIR=%TEMP_DIR%\selftest-downloads"
+if not exist "%DOWNLOAD_DIR%" mkdir "%DOWNLOAD_DIR%"
+> "%MANIFEST%" type nul
+> "%DOWNLOAD_DIR%\sample.pdf" echo test
+
+call :write_manifest "https://docs.fortinet.com/document/example/1.0/sample" "https://example.test/sample.pdf" "sample.pdf" "etag-one"
+if errorlevel 1 (
+  echo [FAIL] Tracking manifest write failed.
+  exit /b 16
+)
+
+call :classify_download "https://docs.fortinet.com/document/example/1.0/sample" "https://example.test/sample.pdf" "sample.pdf" "etag-one"
+if /i not "!TRACK_STATUS!"=="UNCHANGED" (
+  echo [FAIL] Tracking expected UNCHANGED, got !TRACK_STATUS!.
+  exit /b 17
+)
+
+call :classify_download "https://docs.fortinet.com/document/example/1.0/sample" "https://example.test/sample.pdf" "sample.pdf" "etag-two"
+if /i not "!TRACK_STATUS!"=="CHANGED" (
+  echo [FAIL] Tracking expected CHANGED, got !TRACK_STATUS!.
+  exit /b 18
+)
+
+del /q "%DOWNLOAD_DIR%\sample.pdf" >nul 2>&1
+call :classify_download "https://docs.fortinet.com/document/example/1.0/sample" "https://example.test/sample.pdf" "sample.pdf" "etag-one"
+if /i not "!TRACK_STATUS!"=="MISSING_LOCAL" (
+  echo [FAIL] Tracking expected MISSING_LOCAL, got !TRACK_STATUS!.
+  exit /b 19
+)
+
+call :classify_download "https://docs.fortinet.com/document/example/1.0/new" "https://example.test/new.pdf" "new.pdf" "etag-new"
+if /i not "!TRACK_STATUS!"=="NEW" (
+  echo [FAIL] Tracking expected NEW, got !TRACK_STATUS!.
+  exit /b 20
+)
+
+set "MANIFEST=%ORIGINAL_MANIFEST%"
+set "DOWNLOAD_DIR=%ORIGINAL_DOWNLOAD_DIR%"
+del /q "%TEMP_DIR%\selftest-downloads.db" >nul 2>&1
+rmdir /s /q "%TEMP_DIR%\selftest-downloads" >nul 2>&1
+
+echo [PASS] Download tracking classifications
+echo [PASS] cmd.exe parser and tracking self-test
 exit /b 0
 
 :doctor_menu
@@ -338,6 +497,24 @@ if exist "%DOWNLOAD_DIR%" (
     set "DOCTOR_FAIL=1"
   ) else echo [PASS] runtime\downloads
 )
+
+if exist "%STATE_DIR%" (
+  echo [PASS] runtime\state
+) else (
+  mkdir "%STATE_DIR%" >nul 2>&1
+  if errorlevel 1 (
+    echo [FAIL] runtime\state
+    set "DOCTOR_FAIL=1"
+  ) else echo [PASS] runtime\state
+)
+
+if not exist "%MANIFEST%" (
+  type nul > "%MANIFEST%" 2>nul
+  if errorlevel 1 (
+    echo [FAIL] tracking database
+    set "DOCTOR_FAIL=1"
+  ) else echo [PASS] tracking database
+) else echo [PASS] tracking database
 
 if "%DOCTOR_FAIL%"=="1" exit /b 1
 exit /b 0

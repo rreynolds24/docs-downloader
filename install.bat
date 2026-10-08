@@ -29,6 +29,8 @@ echo [PASS] findstr.exe
 if not exist "runtime" mkdir "runtime"
 if not exist "runtime\downloads" mkdir "runtime\downloads"
 if not exist "runtime\temp" mkdir "runtime\temp"
+if not exist "runtime\state" mkdir "runtime\state"
+if not exist "runtime\state\downloads.db" type nul > "runtime\state\downloads.db"
 
 if not exist "runtime\downloads" (
   echo [FAIL] Could not create runtime\downloads.
@@ -38,8 +40,16 @@ if not exist "runtime\temp" (
   echo [FAIL] Could not create runtime\temp.
   exit /b 1
 )
+if not exist "runtime\state" (
+  echo [FAIL] Could not create runtime\state.
+  exit /b 1
+)
+if not exist "runtime\state\downloads.db" (
+  echo [FAIL] Could not create runtime\state\downloads.db.
+  exit /b 1
+)
 
-echo [PASS] runtime directories
+echo [PASS] runtime directories and tracking database
 echo.
 echo Installation check complete.
 echo Launch with: run.bat

@@ -51,3 +51,21 @@ Windows CI now validates:
 - FortiCamera root inventory using `/document/forticamera/latest/...` paths
 
 A document page with no `reader-pdf` target is treated as a non-fatal skip and is counted separately from warnings/failures.
+
+
+## v0.0.7 tracking regression
+
+Windows validation now performs two consecutive live FortiPAM 7.0 downloads in the same workspace.
+
+The first run must:
+- create `runtime\state\downloads.db`;
+- download non-empty PDFs;
+- write FortiPAM document records into the tracking database.
+
+The second run must:
+- return success;
+- report `Downloaded/updated : 0`;
+- report `Unchanged/skipped : 6`;
+- report `Unchanged PDFs : 6`.
+
+The cmd.exe self-test also validates the four tracking classifications: `NEW`, `UNCHANGED`, `CHANGED`, and `MISSING_LOCAL`.

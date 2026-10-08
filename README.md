@@ -4,7 +4,7 @@ Portable Windows-native CLI for discovering and downloading PDF documentation fr
 
 ## Status
 
-**Current release: v0.0.6**
+**Current release: v0.0.7**
 
 The core workflow is validated end to end on both:
 
@@ -131,6 +131,23 @@ Every parser change is now gated by a Windows GitHub Actions workflow that runs:
 
 The v0.0.4 validation run passed all of those stages before the working implementation was merged. v0.0.5 contains only documentation and deterministic CLI-banner alignment changes on top of that working parser.
 
+## Download tracking
+
+v0.0.7 maintains persistent state under:
+
+```text
+runtime\state\downloads.db
+```
+
+Each successful download records the Fortinet document URL, resolved PDF URL, local filename, and remote ETag when available. Future inventory/download runs classify each PDF as:
+
+- `NEW` - no previous tracked download.
+- `UNCHANGED` - same document/PDF identity and the local file is present.
+- `CHANGED` - the resolved PDF URL, filename, or ETag changed.
+- `MISSING_LOCAL` - the PDF was tracked previously but the local file is gone.
+
+Download mode automatically skips `UNCHANGED` files and retrieves only new, changed, or missing PDFs. Tracking state lives under `runtime/`, so normal ZIP-overlay upgrades preserve it.
+
 ## Current limitations
 
 The current release processes one Fortinet product/version page at a time.
@@ -139,9 +156,8 @@ Not yet implemented:
 
 - all-version traversal
 - document-type filtering
-- manifest generation
-- update/delta mode
-- de-duplication across multiple requested versions
+- removed-document reporting
+- product/version-aware output folders
 
 See `docs/ARCHITECTURE.md` and `docs/VALIDATION.md` for implementation and validation details.
 
@@ -174,3 +190,6 @@ The Windows CI suite includes FortiCamera root inventory as a permanent regressi
 ## Documents without PDFs
 
 Some Fortinet product pages contain documentation entries that do not expose a `reader-pdf` target. v0.0.6 reports these as `No PDF available` and skips them without treating them as parser/download failures. Network errors, broken document pages, failed downloads, and zero-byte PDFs remain failures.
+
+
+See `docs/TRACKING.md` for the tracking-state format and change-detection rules.
