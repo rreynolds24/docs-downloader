@@ -101,6 +101,7 @@ echo [INFO] Resolving PDF targets...
 set /a TOTAL=0
 set /a RESOLVED=0
 set /a FAILED=0
+set /a NO_PDF=0
 
 for /f "usebackq delims=" %%D in ("%DOC_LIST%") do (
   set /a TOTAL+=1
@@ -121,8 +122,8 @@ for /f "usebackq delims=" %%D in ("%DOC_LIST%") do (
   ) else (
     call :extract_pdf_url "%DOC_HTML%"
     if errorlevel 1 (
-      echo [WARN] PDF link not found on document page.
-      set /a FAILED+=1
+      echo [INFO] No PDF available for this document; skipping.
+      set /a NO_PDF+=1
     ) else (
       set /a RESOLVED+=1
       for %%F in ("!PDF_URL:/=\!") do set "PDF_NAME=%%~nxF"
@@ -155,6 +156,7 @@ echo.
 echo ------------------------------------------------------------
 echo Documents discovered : !TOTAL!
 echo PDF targets resolved  : !RESOLVED!
+echo No PDF available      : !NO_PDF!
 echo Warnings/failures     : !FAILED!
 if /i "!MODE!"=="download" echo Download directory    : %DOWNLOAD_DIR%
 echo ------------------------------------------------------------
