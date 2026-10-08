@@ -217,6 +217,7 @@ exit /b 0
 
 :classify_download
 set "TRACK_STATUS=NEW"
+set "CURRENT_ETAG=%~4"
 set "PREV_PDF_URL="
 set "PREV_PDF_NAME="
 set "PREV_ETAG="
@@ -232,12 +233,12 @@ if /i not "!PREV_PDF_NAME!"=="%~3" (
   set "TRACK_STATUS=CHANGED"
   exit /b 0
 )
-if defined REMOTE_ETAG (
+if defined CURRENT_ETAG (
   if not defined PREV_ETAG (
     set "TRACK_STATUS=CHANGED"
     exit /b 0
   )
-  if /i not "!PREV_ETAG!"=="%~4" (
+  if /i not "!PREV_ETAG!"=="!CURRENT_ETAG!" (
     set "TRACK_STATUS=CHANGED"
     exit /b 0
   )
