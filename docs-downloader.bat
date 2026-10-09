@@ -233,6 +233,7 @@ for /f "usebackq delims=" %%D in ("%DOC_LIST%") do (
                   set /a FAILED+=1
                 ) else (
                   call :compute_sha256 "%DOWNLOAD_TMP%"
+                  if defined FILE_HASH echo [INFO] SHA256 !FILE_HASH!
                   if not defined FILE_HASH (
                     echo [WARN] Could not compute SHA-256 for downloaded content.
                     set /a FAILED+=1
@@ -872,6 +873,27 @@ if /i not "!TRACK_STATUS!"=="CHANGED" (
   exit /b 21
 )
 echo [PASS] Download tracking classifications
+
+> "%DOWNLOAD_DIR%\hash-a.bin" echo alpha
+> "%DOWNLOAD_DIR%\hash-b.bin" echo beta
+call :compute_sha256 "%DOWNLOAD_DIR%\hash-a.bin"
+set "HASH_A=!FILE_HASH!"
+call :compute_sha256 "%DOWNLOAD_DIR%\hash-b.bin"
+set "HASH_B=!FILE_HASH!"
+if not defined HASH_A (
+  echo [FAIL] SHA-256 self-test did not produce hash A.
+  exit /b 27
+)
+if not defined HASH_B (
+  echo [FAIL] SHA-256 self-test did not produce hash B.
+  exit /b 28
+)
+if /i "!HASH_A!"=="!HASH_B!" (
+  echo [FAIL] SHA-256 self-test produced identical hashes for different files.
+  exit /b 29
+)
+del /q "%DOWNLOAD_DIR%\hash-a.bin" "%DOWNLOAD_DIR%\hash-b.bin" >nul 2>&1
+echo [PASS] SHA-256 content identity
 
 set "DOC_URL=https://docs.fortinet.com/document/example/1.0/sample"
 set "PRODUCT_ID=example"
