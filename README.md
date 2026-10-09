@@ -4,7 +4,7 @@ Portable Windows-native CLI for discovering and downloading PDF documentation fr
 
 ## Status
 
-**Current release: v0.0.7**
+**Current release: v0.0.8**
 
 The core workflow is validated end to end on both:
 
@@ -148,15 +148,35 @@ Each successful download records the Fortinet document URL, resolved PDF URL, lo
 
 Download mode automatically skips `UNCHANGED` files and retrieves only new, changed, or missing PDFs. Tracking state lives under `runtime/`, so normal ZIP-overlay upgrades preserve it.
 
+## Version-aware catalogue
+
+v0.0.8 adds a historical documentation catalogue:
+
+```text
+runtime\state\catalogue.db
+```
+
+The catalogue records the Fortinet document URL, product, document family, source-path version, inferred document version, PDF URL, remote filename, ETag, Content-Length, SHA-256, first seen, last seen, local filename, lifecycle status, and the product catalogue URL that exposed it.
+
+The new command:
+
+```bat
+run.bat check https://docs.fortinet.com/product/<product>
+```
+
+checks the live product page without downloading and reports newly observed documents/versions, in-place updates, known versions, duplicate content, and locally missing PDFs.
+
+SHA-256 is the authoritative local content identity. If the same bytes are exposed through another document URL or filename, the downloader reuses the existing local PDF rather than storing another copy. If a nominally identical version is republished with different bytes, the old file is retained and the replacement receives a short SHA-256 suffix so history is not overwritten.
+
 ## Current limitations
 
 The current release processes one Fortinet product/version page at a time.
 
 Not yet implemented:
 
-- all-version traversal
+- all-version traversal beyond what a product root already exposes
 - document-type filtering
-- removed-document reporting
+- removed-from-catalogue reporting
 - product/version-aware output folders
 
 See `docs/ARCHITECTURE.md` and `docs/VALIDATION.md` for implementation and validation details.
@@ -193,3 +213,6 @@ Some Fortinet product pages contain documentation entries that do not expose a `
 
 
 See `docs/TRACKING.md` for the tracking-state format and change-detection rules.
+
+
+See `docs/CATALOGUE.md` for the version/history schema and de-duplication rules.

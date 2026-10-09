@@ -1,8 +1,8 @@
 # Architecture
 
-## v0.0.7 scope
+## v0.0.8 scope
 
-The supported operator path is deliberately small:
+The supported operator path remains Windows-native and repository-local:
 
 ```text
 GitHub ZIP
@@ -10,90 +10,122 @@ GitHub ZIP
   -> install.bat
   -> run.bat
   -> docs-downloader.bat
-  -> curl.exe to docs.fortinet.com
-  -> discover /document/... links
-  -> resolve reader-pdf HTTPS attachment
-  -> compare with runtime/state/downloads.db
-  -> skip unchanged PDFs
-  -> download new/changed/missing PDFs
-  -> update tracking state after successful download
+  -> discover Fortinet /document/... links
+  -> resolve reader-pdf attachment
+  -> inspect ETag + Content-Length
+  -> classify tracked download state
+  -> classify product / family / version state
+  -> calculate SHA-256 with certutil.exe
+  -> avoid duplicate content
+  -> preserve changed-in-place history
+  -> update downloads.db + catalogue.db
 ```
 
 ## Restricted-workstation contract
 
-The normal Windows path uses only inbox Windows tooling:
+The supported runtime path uses Windows inbox tooling only:
 
 - `cmd.exe`
 - `curl.exe`
 - `findstr.exe`
-- ordinary Batch built-ins
+- `certutil.exe`
+- Batch built-ins
 
 It does not require PowerShell, Git, Python, Node.js, a package manager, admin rights, registry changes, or a custom executable.
 
-Internet access is used only for the application's declared core function: reading Fortinet document pages, checking PDF metadata, and downloading PDF attachments.
+Internet access is used only for the declared application function: reading Fortinet documentation pages, inspecting PDF metadata, and downloading PDF attachments.
 
-## Parser design
+## Persistent state
 
-The parser is Fortinet-specific and fail-closed.
+Mutable state remains under `runtime/` so GitHub ZIP overlays preserve it.
 
-1. The product page is downloaded to a local temporary file.
-2. `findstr` selects anchor lines containing `/document/`.
-3. Relative document hrefs are extracted across supported attribute positions and de-duplicated.
-4. Each document page is downloaded independently.
-5. Lines containing `reader-pdf` are filtered to a local file.
-6. The direct HTTPS PDF attachment is extracted.
-7. Pages without a PDF are counted as non-fatal skips.
-8. Download mode rejects failed or zero-byte downloads.
-
-HTML-derived text is not re-injected into command syntax.
-
-## Persistent tracking state
-
-Mutable content is kept under `runtime/`, which is ignored by Git so ZIP-overlay upgrades preserve downloaded PDFs and tracking state.
-
-The tracking database is:
+### Acquisition tracking
 
 ```text
 runtime\state\downloads.db
 ```
 
-Each successful download stores one pipe-delimited record:
+v0.0.8 supports both the previous four-field records and the new five-field form:
 
 ```text
-document_url|pdf_url|filename|etag
+document_url|pdf_url|remote_filename|etag|local_filename
 ```
 
-The document page URL is the stable key.
+The separate local filename allows multiple Fortinet document entries to reference one canonical local PDF when their content is identical.
 
-For every currently resolved PDF the tool compares the live PDF URL, filename, and remote ETag with the stored record and classifies it as:
+### Historical version catalogue
+
+```text
+runtime\state\catalogue.db
+```
+
+Records use:
+
+```text
+document_url|product|family|source_version|document_version|pdf_url|remote_filename|etag|content_length|sha256|first_seen|last_seen|local_filename|status|catalogue_url
+```
+
+Empty/unknown persisted values use `-` so Batch `FOR /F` token positions remain stable.
+
+A document URL can have multiple catalogue rows over time. The active row is `CURRENT` when local bytes are present or `AVAILABLE` when observed remotely but not yet downloaded. A superseded row is retained as `HISTORICAL`.
+
+## Version identity
+
+The document URL path provides product, source version, and document-family slug.
+
+For paths such as:
+
+```text
+/document/forticamera/latest/release-notes
+```
+
+the source version remains `latest`, while a concrete version such as `2.2.3` is inferred from filenames like `FortiCamera-v2.2.3-Release_Notes.pdf` when possible.
+
+## Content identity and de-duplication
+
+Remote pre-download duplicate detection uses:
+
+1. identical PDF URL with no conflicting ETag/Content-Length evidence; or
+2. matching ETag plus Content-Length.
+
+After download, SHA-256 is authoritative.
+
+If SHA-256 matches an existing catalogue entry whose local file exists, the temporary download is discarded and the new document/version points at the existing local file.
+
+If a destination filename already exists with different bytes, the replacement is stored as:
+
+```text
+<base>__<first-12-sha256><extension>
+```
+
+This preserves prior bytes when Fortinet silently republishes a nominally identical version.
+
+## Classification
+
+Acquisition state remains:
 
 - `NEW`
 - `UNCHANGED`
 - `CHANGED`
 - `MISSING_LOCAL`
 
-If the server does not expose an ETag, comparison falls back to PDF URL and filename.
+Version state adds:
 
-Tracking state is advanced only after a non-empty PDF is downloaded successfully. Existing records are rewritten through a temporary file plus `move /y` so a partial update does not become the authoritative state.
+- `NEW_DOCUMENT`
+- `NEW_VERSION`
+- `UPDATED_IN_PLACE`
+- `KNOWN_VERSION`
+- `AVAILABLE_NOT_DOWNLOADED`
 
 ## Validation model
 
-Windows GitHub Actions executes the real Batch implementation under `cmd.exe`.
+The Windows CI gate exercises the real Batch implementation under `cmd.exe` and must pass before merge.
 
-The gate validates:
-
-- installation/doctor
-- parser and tracking self-tests
-- live FortiPAM 7.0 inventory
-- first FortiPAM tracked download
-- second FortiPAM download with all six PDFs skipped as unchanged
-- live FortiCamera root inventory
-- live FortiWeb root inventory
+It covers parser fixtures, tracking, version inference, catalogue history, SHA-256 lookup, live FortiPAM inventory/download/check behavior, unchanged second-run behavior, FortiCamera, and FortiWeb.
 
 ## Current limits
 
-- One product/version page per invocation.
-- No all-version traversal yet.
-- No guide-type filtering yet.
-- No removed-document reporting yet.
-- No product/version-aware output directories yet.
+- One explicitly supplied product/product-version URL per invocation.
+- No product/version directory restructuring yet.
+- No removed-from-catalogue lifecycle reporting yet.
+- No selective guide-type filter yet.

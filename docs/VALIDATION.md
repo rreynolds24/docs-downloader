@@ -69,3 +69,22 @@ The second run must:
 - report `Unchanged PDFs : 6`.
 
 The cmd.exe self-test also validates the four tracking classifications: `NEW`, `UNCHANGED`, `CHANGED`, and `MISSING_LOCAL`.
+
+
+## v0.0.8 version-catalogue regression
+
+The Windows self-test now also validates:
+
+- FortiCamera `latest` path plus concrete version inference from a PDF filename;
+- catalogue writes and family/version lookup;
+- SHA-256 duplicate lookup;
+- historical revision retention when the same document URL receives different content.
+
+The live FortiPAM workflow additionally validates:
+
+1. first versioned download creates both `downloads.db` and `catalogue.db`;
+2. catalogue contains FortiPAM `CURRENT` rows;
+3. `run.bat check` reports zero new versions, zero in-place updates, and six unchanged PDFs after the first download;
+4. a second download still retrieves zero files and skips all six unchanged PDFs.
+
+FortiCamera and FortiWeb live inventory regressions remain mandatory.
