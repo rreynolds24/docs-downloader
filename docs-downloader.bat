@@ -615,11 +615,16 @@ exit /b 1
 :compute_sha256
 set "FILE_HASH="
 if not exist "%~1" exit /b 1
-for /f "tokens=* delims=" %%H in ('certutil.exe -hashfile "%~1" SHA256 ^| findstr /v /i /c:"hash of file" /c:"CertUtil"') do (
+for /f "skip=1 tokens=* delims=" %%H in ('certutil.exe -hashfile "%~1" SHA256') do (
   if not defined FILE_HASH set "FILE_HASH=%%H"
 )
 set "FILE_HASH=!FILE_HASH: =!"
 if not defined FILE_HASH exit /b 1
+if "!FILE_HASH:~63,1!"=="" exit /b 1
+if not "!FILE_HASH:~64,1!"=="" exit /b 1
+set "NON_HEX_HASH="
+for /f "delims=0123456789abcdefABCDEF" %%X in ("!FILE_HASH!") do set "NON_HEX_HASH=%%X"
+if defined NON_HEX_HASH exit /b 1
 exit /b 0
 
 :choose_local_name
