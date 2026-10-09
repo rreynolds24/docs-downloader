@@ -571,10 +571,15 @@ for /f "usebackq tokens=1-15 delims=|" %%A in ("%CATALOGUE%") do (
   if not "!ROW_LOCAL!"=="-" (
     if exist "%DOWNLOAD_DIR%\!ROW_LOCAL!" (
       if /i "!ROW_PDF_URL!"=="!CURRENT_PDF_URL!" (
-        set "DUP_FOUND=1"
-        set "DUP_LOCAL=!ROW_LOCAL!"
-        set "DUP_SHA=!ROW_SHA!"
-        exit /b 0
+        set "REMOTE_CONFLICT=0"
+        if not "!CURRENT_REMOTE_ETAG!"=="-" if not "!ROW_ETAG!"=="-" if /i not "!ROW_ETAG!"=="!CURRENT_REMOTE_ETAG!" set "REMOTE_CONFLICT=1"
+        if not "!CURRENT_REMOTE_LENGTH!"=="-" if not "!ROW_LENGTH!"=="-" if /i not "!ROW_LENGTH!"=="!CURRENT_REMOTE_LENGTH!" set "REMOTE_CONFLICT=1"
+        if "!REMOTE_CONFLICT!"=="0" (
+          set "DUP_FOUND=1"
+          set "DUP_LOCAL=!ROW_LOCAL!"
+          set "DUP_SHA=!ROW_SHA!"
+          exit /b 0
+        )
       )
       if not "!CURRENT_REMOTE_ETAG!"=="-" if not "!CURRENT_REMOTE_LENGTH!"=="-" (
         if /i "!ROW_ETAG!"=="!CURRENT_REMOTE_ETAG!" if /i "!ROW_LENGTH!"=="!CURRENT_REMOTE_LENGTH!" (
@@ -609,7 +614,7 @@ exit /b 1
 :compute_sha256
 set "FILE_HASH="
 if not exist "%~1" exit /b 1
-for /f "usebackq tokens=* delims=" %%H in (`certutil.exe -hashfile "%~1" SHA256 ^| findstr /v /i /c:"hash of file" /c:"CertUtil"`) do (
+for /f "tokens=* delims=" %%H in ('certutil.exe -hashfile "%~1" SHA256 ^| findstr /v /i /c:"hash of file" /c:"CertUtil"') do (
   if not defined FILE_HASH set "FILE_HASH=%%H"
 )
 set "FILE_HASH=!FILE_HASH: =!"
