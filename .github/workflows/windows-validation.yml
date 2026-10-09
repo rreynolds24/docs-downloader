@@ -37,17 +37,28 @@ jobs:
       - name: Live FortiPAM 7.0 first versioned download
         shell: cmd
         run: |
-          call run.bat download https://docs.fortinet.com/product/fortipam/7.0
-          if errorlevel 1 exit /b %errorlevel%
-          for %%F in (runtime\downloads\*.pdf) do if %%~zF LEQ 0 exit /b 20
-          if not exist runtime\state\downloads.db exit /b 21
-          if not exist runtime\state\catalogue.db exit /b 22
-          findstr /c:"https://docs.fortinet.com/document/fortipam/" runtime\state\downloads.db >nul
+          call run.bat download https://docs.fortinet.com/product/fortipam/7.0 > first-versioned.txt
+          set RC=%ERRORLEVEL%
+          type first-versioned.txt
+          if not "%RC%"=="0" exit /b %RC%
+          set PDF_COUNT=0
+          for %%F in (runtime\downloads\*.pdf) do (
+            if %%~zF LEQ 0 exit /b 20
+            set /a PDF_COUNT+=1
+          )
+          if not "%PDF_COUNT%"=="6" exit /b 21
+          findstr /c:"Downloaded/updated     : 6" first-versioned.txt >nul
+          if errorlevel 1 exit /b 22
+          findstr /c:"Duplicate content     : 0" first-versioned.txt >nul
           if errorlevel 1 exit /b 23
+          if not exist runtime\state\downloads.db exit /b 24
+          if not exist runtime\state\catalogue.db exit /b 25
+          findstr /c:"https://docs.fortinet.com/document/fortipam/" runtime\state\downloads.db >nul
+          if errorlevel 1 exit /b 26
           findstr /c:"|fortipam|" runtime\state\catalogue.db >nul
-          if errorlevel 1 exit /b 24
+          if errorlevel 1 exit /b 27
           findstr /c:"|CURRENT|" runtime\state\catalogue.db >nul
-          if errorlevel 1 exit /b 25
+          if errorlevel 1 exit /b 28
 
       - name: Live FortiPAM 7.0 read-only version check
         shell: cmd
