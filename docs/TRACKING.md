@@ -1,50 +1,81 @@
-# Download tracking
+# Download and version tracking
 
-## Purpose
+## State files
 
-v0.0.7 adds persistent local knowledge of PDFs already downloaded by the tool and detects when a live Fortinet document now resolves to a different PDF.
-
-## State location
+v0.0.8 maintains two persistent files:
 
 ```text
 runtime\state\downloads.db
+runtime\state\catalogue.db
 ```
 
-This file is intentionally stored under `runtime/` so a newer GitHub ZIP can be overlaid without replacing download history.
+Both live under `runtime/` so normal ZIP-overlay upgrades preserve them.
 
-## Record format
+## downloads.db
 
-One record is stored for each successfully downloaded Fortinet document page:
+The current acquisition record is:
 
 ```text
-document_url|pdf_url|filename|etag
+document_url|pdf_url|remote_filename|etag|local_filename
 ```
 
-The document page URL is the key.
+Older v0.0.7 four-field rows remain readable. If the fifth field is absent, the remote filename is used as the local filename.
 
-## Classification rules
+The document URL remains the stable key.
 
-For every currently resolved PDF:
+### Acquisition classification
 
-- **NEW**: no record exists for the document URL.
-- **CHANGED**: the PDF URL or filename differs from the stored record, or the remote ETag differs. If a current ETag becomes available when the stored record has none, the item is also treated as changed so a stronger baseline can be established.
-- **MISSING_LOCAL**: the remote identity is unchanged but the tracked local file no longer exists.
-- **UNCHANGED**: remote identity matches the stored record and the local file exists.
+- **NEW**: no acquisition record exists.
+- **CHANGED**: PDF URL, remote filename, or available ETag changed.
+- **MISSING_LOCAL**: remote identity is unchanged but the tracked local file is absent.
+- **UNCHANGED**: remote identity matches and the local file exists.
 
-If the server does not provide an ETag, change detection falls back to the resolved PDF URL and filename.
+## catalogue.db
 
-## Download behavior
+The historical record is:
 
-`download` mode retrieves `NEW`, `CHANGED`, and `MISSING_LOCAL` PDFs.
+```text
+document_url|product|family|source_version|document_version|pdf_url|remote_filename|etag|content_length|sha256|first_seen|last_seen|local_filename|status|catalogue_url
+```
 
-`UNCHANGED` PDFs are skipped.
+Statuses:
 
-The tracking record is updated only after a non-empty PDF is downloaded successfully. A failed download does not advance the stored state.
+- `CURRENT`: authoritative local content is present.
+- `AVAILABLE`: observed remotely but not yet downloaded.
+- `HISTORICAL`: a prior revision retained after the same document URL changed.
 
-## First tracked run after upgrading
+### Version classification
 
-PDFs downloaded by releases before v0.0.7 have no tracking record. The first v0.0.7 download run therefore treats them as `NEW` and downloads them once to establish an authoritative tracking baseline. Subsequent runs can skip them when unchanged.
+- **NEW_DOCUMENT**: the document family has never been observed for the product.
+- **NEW_VERSION**: the family exists, but this version has never been observed.
+- **UPDATED_IN_PLACE**: the same document URL/version now resolves differently.
+- **KNOWN_VERSION**: an already known version remains current.
+- **AVAILABLE_NOT_DOWNLOADED**: the version was observed by inventory/check but has not yet been acquired.
 
-## Persistence
+## SHA-256 identity
 
-Both `runtime\downloads\` and `runtime\state\` are runtime data and are ignored by Git. ZIP-overlay upgrades therefore preserve both the downloaded corpus and the tracking database.
+Downloaded bytes are hashed with Windows inbox `certutil.exe`.
+
+SHA-256 is the authoritative local duplicate identity. ETag and Content-Length are used only as pre-download optimization signals.
+
+When the same SHA-256 already exists, the new document/version points to the existing local file and the duplicate temporary file is discarded.
+
+## Same-version republishing
+
+If Fortinet republishes the same nominal version and the existing filename would overwrite different bytes, the new local filename uses a 12-character SHA-256 suffix. The prior bytes and catalogue row remain historical.
+
+## Read-only check
+
+Use:
+
+```bat
+run.bat check https://docs.fortinet.com/product/<product>
+```
+
+This updates first/last-seen catalogue observations but does not download PDFs. Remote-only observations are stored as `AVAILABLE`.
+
+## Upgrade behavior from v0.0.7
+
+Existing `downloads.db` records remain valid.
+
+On the first v0.0.8 run, an unchanged existing local PDF can be hashed in place and inserted into `catalogue.db` without re-downloading. This seeds the version-aware history from the already-downloaded corpus.
