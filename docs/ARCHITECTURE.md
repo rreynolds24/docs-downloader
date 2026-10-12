@@ -1,131 +1,145 @@
 # Architecture
 
-## v0.0.8 scope
+## v0.0.9 scope
 
-The supported operator path remains Windows-native and repository-local:
+v0.0.9 turns the downloader into a multi-source Fortinet corpus collector while retaining the proven restricted-Windows deployment model.
 
 ```text
-GitHub ZIP
-  -> extract
-  -> install.bat
-  -> run.bat
-  -> docs-downloader.bat
-  -> discover Fortinet /document/... links
-  -> resolve reader-pdf attachment
-  -> inspect ETag + Content-Length
-  -> classify tracked download state
-  -> classify product / family / version state
-  -> calculate SHA-256 with certutil.exe
-  -> avoid duplicate content
-  -> preserve changed-in-place history
-  -> update downloads.db + catalogue.db
+run.bat
+  |
+  +-- product docs ------ docs-downloader.bat
+  |      -> docs.fortinet.com/product/...
+  |      -> reader-pdf
+  |
+  +-- Solution Hubs ----- solution-downloader.bat
+  |      -> docs.fortinet.com/<solution>/<version>
+  |      -> deep product-document links
+  |      -> Fortinet-hosted direct PDFs
+  |
+  +-- Knowledge Base ---- kb-downloader.bat
+  |      -> community.fortinet.com sitemap index
+  |      -> topic sitemaps
+  |      -> per-category article corpus
+  |
+  +-- self update ------- update.bat
+         -> GitHub main ZIP
+         -> native extract/overlay
+         -> preserve runtime/
 ```
 
-## Restricted-workstation contract
+## Restricted-workstation runtime
 
-The supported runtime path uses Windows inbox tooling only:
+Core product acquisition remains Batch plus Windows inbox tools. v0.0.9 adds Windows Script Host `cscript.exe` for deterministic parsing of Solution Hub HTML and large minified Community XML sitemaps.
+
+Runtime tools:
 
 - `cmd.exe`
 - `curl.exe`
 - `findstr.exe`
 - `certutil.exe`
-- Batch built-ins
+- `cscript.exe` for Solution Hub / Knowledge Base parsing
+- `tar.exe` and `robocopy.exe` only when `run.bat update` is invoked
 
-It does not require PowerShell, Git, Python, Node.js, a package manager, admin rights, registry changes, or a custom executable.
+No PowerShell, Git, Python, Node.js, package manager, custom executable, admin rights, registry mutation, or installer download is required.
 
-Internet access is used only for the declared application function: reading Fortinet documentation pages, inspecting PDF metadata, and downloading PDF attachments.
+## Shared PDF content identity
 
-## Persistent state
-
-Mutable state remains under `runtime/` so GitHub ZIP overlays preserve it.
-
-### Acquisition tracking
+Product docs and Solution Hub resources use the same:
 
 ```text
+runtime\downloads\
 runtime\state\downloads.db
-```
-
-v0.0.8 supports both the previous four-field records and the new five-field form:
-
-```text
-document_url|pdf_url|remote_filename|etag|local_filename
-```
-
-The separate local filename allows multiple Fortinet document entries to reference one canonical local PDF when their content is identical.
-
-### Historical version catalogue
-
-```text
 runtime\state\catalogue.db
 ```
 
-Records use:
+SHA-256 remains authoritative local PDF content identity. Solution Hub deep links may resolve to the same full guide through many chapter URLs. Once a matching PDF URL/remote identity or SHA-256 is known, the existing local file is reused.
+
+Curated-source membership is independent of content storage and is tracked in:
 
 ```text
-document_url|product|family|source_version|document_version|pdf_url|remote_filename|etag|content_length|sha256|first_seen|last_seen|local_filename|status|catalogue_url
+runtime\state\sources.db
 ```
 
-Empty/unknown persisted values use `-` so Batch `FOR /F` token positions remain stable.
-
-A document URL can have multiple catalogue rows over time. The active row is `CURRENT` when local bytes are present or `AVAILABLE` when observed remotely but not yet downloaded. A superseded row is retained as `HISTORICAL`.
-
-## Version identity
-
-The document URL path provides product, source version, and document-family slug.
-
-For paths such as:
+Schema:
 
 ```text
-/document/forticamera/latest/release-notes
+source_url|resource_url|pdf_url|sha256|first_seen|last_seen|local_filename
 ```
 
-the source version remains `latest`, while a concrete version such as `2.2.3` is inferred from filenames like `FortiCamera-v2.2.3-Release_Notes.pdf` when possible.
+This preserves the fact that a PDF belongs to one or more curated solution pages without storing duplicate bytes.
 
-## Content identity and de-duplication
+## Solution Hub parsing
 
-Remote pre-download duplicate detection uses:
+The Windows Script Host parser scans anchor tags and accepts only:
 
-1. identical PDF URL with no conflicting ETag/Content-Length evidence; or
-2. matching ETag plus Content-Length.
+- relative or absolute `docs.fortinet.com/document/...` links;
+- direct PDFs hosted on approved Fortinet domains.
 
-After download, SHA-256 is authoritative.
+Third-party links from a curated page are not downloaded automatically.
 
-If SHA-256 matches an existing catalogue entry whose local file exists, the temporary download is discarded and the new document/version points at the existing local file.
+Each docs document link is fetched and resolved through the normal `reader-pdf` mechanism.
 
-If a destination filename already exists with different bytes, the replacement is stored as:
+## Knowledge Base corpus
+
+The KB category page is used for category discovery only. Full per-category article discovery comes from the Community sitemap index and its `sitemap-topics-*.xml` members.
+
+The bundled WSH parser extracts:
 
 ```text
-<base>__<first-12-sha256><extension>
+article_url|lastmod|article_id
 ```
 
-This preserves prior bytes when Fortinet silently republishes a nominally identical version.
+and filters by category path.
 
-## Classification
+Raw article HTML is stored under:
 
-Acquisition state remains:
+```text
+runtime\kb\articles\<category>\article-<id>.html
+```
 
-- `NEW`
-- `UNCHANGED`
-- `CHANGED`
-- `MISSING_LOCAL`
+Current article state:
 
-Version state adds:
+```text
+runtime\state\kb.db
+```
 
-- `NEW_DOCUMENT`
-- `NEW_VERSION`
-- `UPDATED_IN_PLACE`
-- `KNOWN_VERSION`
-- `AVAILABLE_NOT_DOWNLOADED`
+Historical changed article state:
 
-## Validation model
+```text
+runtime\state\kb-history.db
+```
 
-The Windows CI gate exercises the real Batch implementation under `cmd.exe` and must pass before merge.
+`lastmod` is used for inexpensive change classification. On sync, downloaded article bytes are SHA-256 hashed. If sitemap metadata changed but bytes did not, only state metadata advances. If content changed, the prior HTML is retained with a short hash suffix before the current article is replaced.
 
-It covers parser fixtures, tracking, version inference, catalogue history, SHA-256 lookup, live FortiPAM inventory/download/check behavior, unchanged second-run behavior, FortiCamera, and FortiWeb.
+## Native self-update
 
-## Current limits
+`run.bat update` dispatches to `update.bat`.
 
-- One explicitly supplied product/product-version URL per invocation.
-- No product/version directory restructuring yet.
-- No removed-from-catalogue lifecycle reporting yet.
-- No selective guide-type filter yet.
+The updater:
+
+1. copies itself under `runtime\temp` so its source can be overwritten safely;
+2. downloads the GitHub `main.zip` using `curl.exe`;
+3. extracts with `tar.exe`;
+4. validates the extracted app root;
+5. compares `VERSION`;
+6. overlays application files with `robocopy.exe`, explicitly excluding `runtime` and `.git`;
+7. verifies the installed version and critical files;
+8. invokes the updated `install.bat`.
+
+`robocopy` exit codes below 8 are treated as success.
+
+## Validation
+
+The Windows gate retains all v0.0.8 product regressions and adds:
+
+- live SD-WAN Solution Hub inventory;
+- live Community KB category discovery;
+- bounded live FortiGate KB article sync plus repeat unchanged check;
+- synthetic native update that proves application files change while a runtime marker survives.
+
+## Deferred scope
+
+- automated global sync of every KB category in one command;
+- normalized text/Markdown conversion of KB HTML;
+- removed-from-source lifecycle reporting;
+- product/version directory migration for PDFs.
