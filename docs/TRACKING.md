@@ -79,3 +79,28 @@ This updates first/last-seen catalogue observations but does not download PDFs. 
 Existing `downloads.db` records remain valid.
 
 On the first v0.0.8 run, an unchanged existing local PDF can be hashed in place and inserted into `catalogue.db` without re-downloading. This seeds the version-aware history from the already-downloaded corpus.
+
+
+## v0.0.9 additional state
+
+### Solution provenance
+
+`runtime\state\sources.db` records curated Solution Hub membership separately from PDF content identity:
+
+```text
+source_url|resource_url|pdf_url|sha256|first_seen|last_seen|local_filename
+```
+
+This permits many solution/document references to reuse one local PDF.
+
+### Knowledge Base
+
+`runtime\state\kb.db` stores current KB article state:
+
+```text
+article_url|category|lastmod|sha256|first_seen|last_seen|local_file|status
+```
+
+When a synchronized article changes bytes, its previous record is appended to `runtime\state\kb-history.db` and the prior HTML is retained using a short SHA-256 suffix.
+
+Knowledge Base article state is intentionally independent of PDF `catalogue.db`.
