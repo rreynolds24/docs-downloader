@@ -16,7 +16,10 @@ if errorlevel 1 (
   exit /b 1
 )
 
-call "runtime\temp\docs-downloader-update-helper.bat" --apply "%~dp0"
+rem Transfer control to the staged helper instead of CALLing it. The helper replaces
+rem update.bat in the live tree, so returning into the old caller after reconciliation
+rem can resume from invalid file offsets and execute stray text.
+"runtime\temp\docs-downloader-update-helper.bat" --apply "%~dp0"
 exit /b %errorlevel%
 
 :apply
