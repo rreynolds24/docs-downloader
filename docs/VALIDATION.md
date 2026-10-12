@@ -88,3 +88,17 @@ The live FortiPAM workflow additionally validates:
 4. a second download still retrieves zero files and skips all six unchanged PDFs.
 
 FortiCamera and FortiWeb live inventory regressions remain mandatory.
+
+
+## v0.0.9 multi-source regression
+
+The release gate extends the existing product-document tests with:
+
+- live `https://docs.fortinet.com/sdwan/8.0` Solution Hub resource discovery;
+- creation/readback of `runtime\state\sources.db`;
+- live Fortinet Community KB category discovery including FortiGate;
+- bounded synchronization of two FortiGate KB articles from the Community topic sitemaps;
+- repeat KB check proving both synchronized articles classify unchanged;
+- synthetic `run.bat update` using a locally generated ZIP, proving application version replacement and preservation of a marker under `runtime\`.
+
+The full KB corpus is not downloaded in CI; the production command has no limit by default, while CI uses the optional numeric limit.
