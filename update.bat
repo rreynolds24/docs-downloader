@@ -22,12 +22,13 @@ exit /b %errorlevel%
 :apply
 set "ROOT=%~2"
 if not defined ROOT exit /b 2
+if "%ROOT:~-1%"=="\" set "ROOT=%ROOT:~0,-1%"
 cd /d "%ROOT%"
 
 set "UPDATE_URL=https://github.com/rreynolds24/docs-downloader/archive/refs/heads/main.zip"
 if defined DOCS_DOWNLOADER_UPDATE_URL set "UPDATE_URL=%DOCS_DOWNLOADER_UPDATE_URL%"
 
-set "WORK=%ROOT%runtime\temp\update"
+set "WORK=%ROOT%\runtime\temp\update"
 set "ZIP=%WORK%\latest.zip"
 set "EXTRACT=%WORK%\extract"
 
@@ -79,7 +80,7 @@ if not defined SOURCE (
 
 set "CURRENT_VERSION=unknown"
 set "NEW_VERSION=unknown"
-if exist "%ROOT%VERSION" set /p CURRENT_VERSION=<"%ROOT%VERSION"
+if exist "%ROOT%\VERSION" set /p CURRENT_VERSION=<"%ROOT%\VERSION"
 set /p NEW_VERSION=<"!SOURCE!\VERSION"
 
 if /i "!CURRENT_VERSION!"=="!NEW_VERSION!" (
@@ -96,28 +97,28 @@ if !ROBOCOPY_RC! GEQ 8 (
   exit /b 6
 )
 
-if not exist "%ROOT%run.bat" (
+if not exist "%ROOT%\run.bat" (
   echo [FAIL] Updated run.bat is missing.
   exit /b 7
 )
-if not exist "%ROOT%docs-downloader.bat" (
+if not exist "%ROOT%\docs-downloader.bat" (
   echo [FAIL] Updated docs-downloader.bat is missing.
   exit /b 7
 )
-if not exist "%ROOT%VERSION" (
+if not exist "%ROOT%\VERSION" (
   echo [FAIL] Updated VERSION is missing.
   exit /b 7
 )
 
 set "VERIFY_VERSION="
-set /p VERIFY_VERSION=<"%ROOT%VERSION"
+set /p VERIFY_VERSION=<"%ROOT%\VERSION"
 if /i not "!VERIFY_VERSION!"=="!NEW_VERSION!" (
   echo [FAIL] Update version verification failed.
   exit /b 8
 )
 
 echo [INFO] Running updated installer/doctor...
-call "%ROOT%install.bat"
+call "%ROOT%\install.bat"
 if errorlevel 1 (
   echo [FAIL] Updated files were applied, but install/doctor failed.
   exit /b 9
