@@ -54,6 +54,57 @@ if errorlevel 1 (
 )
 echo [PASS] robocopy.exe
 
+echo [INFO] Verifying application file integrity...
+
+for %%F in (run.bat docs-downloader.bat solution-downloader.bat kb-downloader.bat update.bat scripts\fortinet-parser.js VERSION) do (
+  if not exist "%%F" (
+    echo [FAIL] Required application file is missing: %%F
+    exit /b 1
+  )
+)
+
+findstr /x /c:":hubs" "solution-downloader.bat" >nul
+if errorlevel 1 (
+  echo [FAIL] solution-downloader.bat is incomplete: missing :hubs label.
+  echo        Run: run.bat update
+  exit /b 1
+)
+findstr /x /c:":lookup_duplicate_remote" "solution-downloader.bat" >nul
+if errorlevel 1 (
+  echo [FAIL] solution-downloader.bat is incomplete: missing :lookup_duplicate_remote label.
+  echo        Run: run.bat update
+  exit /b 1
+)
+findstr /x /c:":write_source" "solution-downloader.bat" >nul
+if errorlevel 1 (
+  echo [FAIL] solution-downloader.bat is incomplete: missing :write_source label.
+  echo        Run: run.bat update
+  exit /b 1
+)
+findstr /x /c:":categories" "kb-downloader.bat" >nul
+if errorlevel 1 (
+  echo [FAIL] kb-downloader.bat is incomplete: missing :categories label.
+  echo        Run: run.bat update
+  exit /b 1
+)
+findstr /x /c:":process_article" "kb-downloader.bat" >nul
+if errorlevel 1 (
+  echo [FAIL] kb-downloader.bat is incomplete: missing :process_article label.
+  echo        Run: run.bat update
+  exit /b 1
+)
+findstr /x /c:":apply" "update.bat" >nul
+if errorlevel 1 (
+  echo [FAIL] update.bat is incomplete: missing :apply label.
+  exit /b 1
+)
+findstr /x /c:":rollback" "update.bat" >nul
+if errorlevel 1 (
+  echo [FAIL] update.bat is incomplete: missing :rollback label.
+  exit /b 1
+)
+echo [PASS] application files and critical batch labels
+
 if not exist "runtime" mkdir "runtime"
 if not exist "runtime\downloads" mkdir "runtime\downloads"
 if not exist "runtime\temp" mkdir "runtime\temp"

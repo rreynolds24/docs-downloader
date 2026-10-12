@@ -22,6 +22,23 @@ jobs:
           call run.bat doctor
           if errorlevel 1 exit /b %errorlevel%
 
+      - name: Installer detects incomplete Solution Hub module
+        shell: cmd
+        run: |
+          copy /y solution-downloader.bat solution-downloader.good >nul
+          > solution-downloader.bat echo @echo off
+          >> solution-downloader.bat echo :doctor
+          >> solution-downloader.bat echo exit /b 0
+          call install.bat > integrity-fail.txt
+          set RC=%ERRORLEVEL%
+          type integrity-fail.txt
+          if "%RC%"=="0" exit /b 70
+          findstr /c:"missing :hubs label" integrity-fail.txt >nul
+          if errorlevel 1 exit /b 71
+          move /y solution-downloader.good solution-downloader.bat >nul
+          call install.bat
+          if errorlevel 1 exit /b %errorlevel%
+
       - name: Parser self-test
         shell: cmd
         run: |
@@ -179,24 +196,28 @@ jobs:
           findstr /c:"Unchanged articles      : 2" kb-check.txt >nul
           if errorlevel 1 exit /b 51
 
-      - name: Native self-update preserves runtime state
+      - name: Native self-update reconciles same-version files and preserves runtime state
         shell: cmd
         run: |
           mkdir update-fixture\docs-downloader-main
-          > update-fixture\docs-downloader-main\VERSION echo 9.9.9
+          > update-fixture\docs-downloader-main\VERSION echo 0.0.10
           > update-fixture\docs-downloader-main\run.bat echo @echo off
           >> update-fixture\docs-downloader-main\run.bat echo exit /b 0
           > update-fixture\docs-downloader-main\docs-downloader.bat echo @echo off
           >> update-fixture\docs-downloader-main\docs-downloader.bat echo exit /b 0
           > update-fixture\docs-downloader-main\install.bat echo @echo off
           >> update-fixture\docs-downloader-main\install.bat echo exit /b 0
+          > update-fixture\docs-downloader-main\same-version-marker.txt echo repaired
           tar.exe -a -cf update-fixture.zip -C update-fixture docs-downloader-main
           if errorlevel 1 exit /b 52
           > runtime\preserve-me.txt echo persistent-state
+          if exist same-version-marker.txt del /q same-version-marker.txt
           set "DOCS_DOWNLOADER_UPDATE_URL=file:///%CD:\=/%/update-fixture.zip"
           call run.bat update
           if errorlevel 1 exit /b %errorlevel%
-          findstr /x /c:"9.9.9" VERSION >nul
+          findstr /x /c:"0.0.10" VERSION >nul
           if errorlevel 1 exit /b 53
-          findstr /x /c:"persistent-state" runtime\preserve-me.txt >nul
+          findstr /x /c:"repaired" same-version-marker.txt >nul
           if errorlevel 1 exit /b 54
+          findstr /x /c:"persistent-state" runtime\preserve-me.txt >nul
+          if errorlevel 1 exit /b 55
