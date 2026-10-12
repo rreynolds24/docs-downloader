@@ -49,5 +49,11 @@ jobs:
           python -c "import re,pathlib; s=pathlib.Path(r'probe\fortigate-page2.html').read_text(encoding='utf-8',errors='ignore'); h=re.findall(r'href=[\"\x27]([^\"\x27]+)',s,re.I); a=list(dict.fromkeys([x for x in h if 'community.fortinet.com/fortigate-3/' in x and re.search(r'-\d+$',x)])); print('FORTIGATE_PAGE2_ARTICLES',len(a)); print(*a[:30],sep='\n')"
           python -c "import re,pathlib; s=''.join(pathlib.Path(r'probe\\'+n).read_text(encoding='utf-8',errors='ignore') for n in ['topics1.xml','topics2.xml']); u=re.findall(r'<loc>([^<]+)</loc>',s,re.I); a=[x for x in u if '/fortigate-3/' in x]; print('FORTIGATE_SITEMAP_ARTICLES',len(a)); print(*a[:20],sep='\n')"
 
+          echo ===== sitemap line structure =====
+          find /c "<loc>" probe\topics1.xml
+          find /c "<loc>" probe\topics2.xml
+          for /f "usebackq tokens=2 delims=<>" %%A in (`findstr /i /c:"/fortigate-3/" probe\topics1.xml`) do echo FIRST_FOR_F=%%A& goto :after_first
+          :after_first
+
           echo ===== file sizes =====
           for %%F in (probe\*) do echo %%~nxF %%~zF
