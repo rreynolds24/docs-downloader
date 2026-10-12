@@ -108,9 +108,10 @@
       if (/sitemap-topics-\d+\.xml$/i.test(loc)) uniqPush(out, seen, loc);
     }
   } else if (mode === "sitemap") {
-    re = /<url>([\s\S]*?)<\/url>/ig;
-    while ((m = re.exec(s)) !== null) {
-      var block = m[1];
+    var blocks = s.split(/<url>/i);
+    for (var bi = 1; bi < blocks.length; bi++) {
+      var end = blocks[bi].indexOf("</url>");
+      var block = end >= 0 ? blocks[bi].substring(0, end) : blocks[bi];
       var lm = /<loc>([^<]+)<\/loc>/i.exec(block);
       if (!lm) continue;
       var url = decode(lm[1]);
