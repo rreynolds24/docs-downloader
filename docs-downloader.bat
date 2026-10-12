@@ -1082,7 +1082,7 @@ echo(#####       #####   ###################################################
 echo(#####       #####   ##                                               ##
 echo(#####       #####   ## Discover, version and synchronize docs         ##
 echo(                    ## directly from docs.fortinet.com                ##
-echo(##### ##### #####   ## Windows native: inbox Windows tools only         ##
+echo(##### ##### #####   ## Windows native: inbox tools only              ##
 echo( #### ##### ####    ## v%APP_VERSION%                                         ##
 echo(  ### ##### ###     ###################################################
 exit /b 0
