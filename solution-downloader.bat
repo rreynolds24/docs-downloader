@@ -354,7 +354,9 @@ set "CAT_STATUS=%~8"
 set "CAT_FOUND=0"
 > "%CATALOGUE_TMP%" (
   if exist "%CATALOGUE%" for /f "usebackq tokens=1-15 delims=|" %%A in ("%CATALOGUE%") do (
-    if /i "%%A"=="%~1" if /i "%%F"=="%~2" (
+    set "ROW_MATCH=0"
+    if /i "%%A"=="%~1" if /i "%%F"=="%~2" set "ROW_MATCH=1"
+    if "!ROW_MATCH!"=="1" (
       echo(%%A^|%%B^|%%C^|%%D^|%%E^|%%F^|%%G^|%~4^|%~5^|%~6^|%%K^|!RUN_SEEN!^|%~7^|!CAT_STATUS!^|%TARGET_URL%
       set "CAT_FOUND=1"
     ) else (
@@ -370,7 +372,9 @@ exit /b %errorlevel%
 set "SRC_FOUND=0"
 > "%SOURCES_TMP%" (
   if exist "%SOURCES%" for /f "usebackq tokens=1-7 delims=|" %%A in ("%SOURCES%") do (
-    if /i "%%A"=="%TARGET_URL%" if /i "%%B"=="%~1" (
+    set "ROW_MATCH=0"
+    if /i "%%A"=="%TARGET_URL%" if /i "%%B"=="%~1" set "ROW_MATCH=1"
+    if "!ROW_MATCH!"=="1" (
       echo(%%A^|%%B^|%~2^|%~3^|%%E^|!RUN_SEEN!^|%~4
       set "SRC_FOUND=1"
     ) else (
