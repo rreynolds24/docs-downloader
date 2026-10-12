@@ -173,7 +173,8 @@ set "ARTICLE_LASTMOD=%~2"
 set "ARTICLE_ID=%~3"
 if "!ARTICLE_ID!"=="-" set "ARTICLE_ID=!TOTAL!"
 set "LOCAL_NAME=article-!ARTICLE_ID!.html"
-set "LOCAL_FILE=%CATEGORY_DIR%\!LOCAL_NAME!"
+set "LOCAL_REL=runtime\kb\articles\%CATEGORY_SLUG%\!LOCAL_NAME!"
+set "LOCAL_FILE=%~dp0!LOCAL_REL!"
 
 call :lookup_kb "!ARTICLE_URL!"
 if errorlevel 1 (
@@ -230,9 +231,10 @@ if defined PREV_SHA if not "!PREV_SHA!"=="-" if /i "!PREV_SHA!"=="!NEW_HASH!" (
 
 if defined PREV_SHA if not "!PREV_SHA!"=="-" if exist "!PREV_LOCAL!" (
   set "OLD_SHORT=!PREV_SHA:~0,12!"
-  set "HIST_FILE=%CATEGORY_DIR%\article-!ARTICLE_ID!__!OLD_SHORT!.html"
+  set "HIST_REL=runtime\kb\articles\%CATEGORY_SLUG%\article-!ARTICLE_ID!__!OLD_SHORT!.html"
+  set "HIST_FILE=%~dp0!HIST_REL!"
   if not exist "!HIST_FILE!" copy /y "!PREV_LOCAL!" "!HIST_FILE!" >nul
-  >> "%KB_HISTORY%" echo(!ARTICLE_URL!^|%CATEGORY_SLUG%^|!PREV_LASTMOD!^|!PREV_SHA!^|!PREV_FIRST!^|!RUN_SEEN!^|!HIST_FILE!^|HISTORICAL
+  >> "%KB_HISTORY%" echo(!ARTICLE_URL!^|%CATEGORY_SLUG%^|!PREV_LASTMOD!^|!PREV_SHA!^|!PREV_FIRST!^|!RUN_SEEN!^|!HIST_REL!^|HISTORICAL
 )
 
 move /y "%ARTICLE_TMP%" "!LOCAL_FILE!" >nul
@@ -244,7 +246,7 @@ if errorlevel 1 (
 
 set "FIRST_SEEN=!RUN_SEEN!"
 if defined PREV_FIRST set "FIRST_SEEN=!PREV_FIRST!"
-call :write_kb "!ARTICLE_URL!" "!ARTICLE_LASTMOD!" "!NEW_HASH!" "!FIRST_SEEN!" "!LOCAL_FILE!" "CURRENT"
+call :write_kb "!ARTICLE_URL!" "!ARTICLE_LASTMOD!" "!NEW_HASH!" "!FIRST_SEEN!" "!LOCAL_REL!" "CURRENT"
 if errorlevel 1 (
   echo [WARN] KB article saved but tracking update failed.
   set /a FAILED+=1
