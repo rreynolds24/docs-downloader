@@ -1008,6 +1008,24 @@ if errorlevel 1 (
   set "DOCTOR_FAIL=1"
 ) else echo [PASS] certutil.exe
 
+where cscript.exe >nul 2>&1
+if errorlevel 1 (
+  echo [FAIL] cscript.exe
+  set "DOCTOR_FAIL=1"
+) else echo [PASS] cscript.exe
+
+where tar.exe >nul 2>&1
+if errorlevel 1 (
+  echo [FAIL] tar.exe
+  set "DOCTOR_FAIL=1"
+) else echo [PASS] tar.exe
+
+where robocopy.exe >nul 2>&1
+if errorlevel 1 (
+  echo [FAIL] robocopy.exe
+  set "DOCTOR_FAIL=1"
+) else echo [PASS] robocopy.exe
+
 if exist "%TEMP_DIR%" (
   echo [PASS] runtime\temp
 ) else (
@@ -1064,7 +1082,7 @@ echo(#####       #####   ###################################################
 echo(#####       #####   ##                                               ##
 echo(#####       #####   ## Discover, version and synchronize docs         ##
 echo(                    ## directly from docs.fortinet.com                ##
-echo(##### ##### #####   ## Windows native: cmd + curl + certutil          ##
+echo(##### ##### #####   ## Windows native: inbox Windows tools only         ##
 echo( #### ##### ####    ## v%APP_VERSION%                                         ##
 echo(  ### ##### ###     ###################################################
 exit /b 0
