@@ -271,7 +271,7 @@ jobs:
           set "DOCS_DOWNLOADER_UPDATE_URL=file:///%CD:\=/%/update-fixture.zip"
           call run.bat update
           if errorlevel 1 exit /b %errorlevel%
-          findstr /x /c:"0.0.12" VERSION >nul
+          findstr /x /c:"0.0.13" VERSION >nul
           if errorlevel 1 exit /b 76
           findstr /x /c:":hubs" solution-downloader.bat >nul
           if errorlevel 1 exit /b 77
@@ -279,3 +279,9 @@ jobs:
           if errorlevel 1 exit /b 78
           findstr /x /c:"persistent-state" runtime\preserve-me.txt >nul
           if errorlevel 1 exit /b 79
+          call run.bat doctor > post-update-doctor.txt
+          set RC=%ERRORLEVEL%
+          type post-update-doctor.txt
+          if not "%RC%"=="0" exit /b %RC%
+          findstr /c:"v0.0.13" post-update-doctor.txt >nul
+          if errorlevel 1 exit /b 85
