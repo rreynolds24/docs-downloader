@@ -14,6 +14,35 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: GitHub ZIP extraction acceptance
+        shell: cmd
+        run: |
+          set "ARCHIVE_SHA=${{ github.event.pull_request.head.sha || github.sha }}"
+          curl.exe -L --fail --silent --show-error "https://github.com/${{ github.repository }}/archive/%ARCHIVE_SHA%.zip" -o github-archive.zip
+          if errorlevel 1 exit /b 80
+          mkdir github-archive
+          tar.exe -xf github-archive.zip -C github-archive
+          if errorlevel 1 exit /b 81
+          set "ZIP_ROOT="
+          for /d %%D in (github-archive\*) do if not defined ZIP_ROOT set "ZIP_ROOT=%%~fD"
+          if not defined ZIP_ROOT exit /b 82
+          pushd "%ZIP_ROOT%"
+          call install.bat
+          if errorlevel 1 exit /b %errorlevel%
+          call run.bat hubs > zip-hubs.txt
+          set RC=%ERRORLEVEL%
+          type zip-hubs.txt
+          if not "%RC%"=="0" exit /b %RC%
+          findstr /i /c:"https://docs.fortinet.com/sdwan" zip-hubs.txt >nul
+          if errorlevel 1 exit /b 83
+          call run.bat inventory https://docs.fortinet.com/sdwan/8.0 > zip-sdwan.txt
+          set RC=%ERRORLEVEL%
+          type zip-sdwan.txt
+          if not "%RC%"=="0" exit /b %RC%
+          findstr /c:"Resources discovered" zip-sdwan.txt >nul
+          if errorlevel 1 exit /b 84
+          popd
+
       - name: Install and doctor
         shell: cmd
         run: |
@@ -242,7 +271,7 @@ jobs:
           set "DOCS_DOWNLOADER_UPDATE_URL=file:///%CD:\=/%/update-fixture.zip"
           call run.bat update
           if errorlevel 1 exit /b %errorlevel%
-          findstr /x /c:"0.0.11" VERSION >nul
+          findstr /x /c:"0.0.12" VERSION >nul
           if errorlevel 1 exit /b 76
           findstr /x /c:":hubs" solution-downloader.bat >nul
           if errorlevel 1 exit /b 77

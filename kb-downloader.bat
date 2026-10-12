@@ -1,5 +1,5 @@
 @echo off
-rem v0.0.11 release-integrity marker
+rem v0.0.12 CRLF ZIP-distribution marker
 setlocal EnableExtensions EnableDelayedExpansion
 cd /d "%~dp0"
 
