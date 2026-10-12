@@ -22,6 +22,7 @@ jobs:
           curl.exe -L --fail --silent --show-error https://docs.fortinet.com/sdwan/8.0 -o probe\sdwan.html
           curl.exe -L --fail --silent --show-error https://community.fortinet.com/knowledge-base -o probe\kb.html
           curl.exe -L --fail --silent --show-error https://community.fortinet.com/fortigate-3 -o probe\fortigate.html
+          curl.exe -L --fail --silent --show-error "https://community.fortinet.com/fortigate-3?page=2" -o probe\fortigate-page2.html
           curl.exe -L --fail --silent --show-error https://community.fortinet.com/sitemap.xml -o probe\sitemap.xml
 
           echo ===== solution-hubs interesting lines =====
@@ -36,8 +37,11 @@ jobs:
           echo ===== FortiGate category interesting lines =====
           findstr /i /c:"technical-tip" /c:"article" /c:"api" /c:"pagination" /c:"page=" /c:"fortigate-3/" probe\fortigate.html
 
-          echo ===== sitemap first article matches =====
-          findstr /i /c:"fortigate-3/" /c:"technical-tip" probe\sitemap.xml
+          echo ===== sitemap =====
+          type probe\sitemap.xml
+
+          echo ===== python structural summary =====
+          python -c "import re,json,pathlib; from html import unescape; files=['solution-hubs','sdwan','kb','fortigate','fortigate-page2'];for n in files: s=pathlib.Path('probe/'+n+'.html').read_text(encoding='utf-8',errors='ignore'); hrefs=re.findall(r'href=[\"\']([^\"\']+)',s,re.I); print('FILE',n,'HREFS',len(hrefs)); print('DOCS',json.dumps(list(dict.fromkeys([h for h in hrefs if '/document/' in h]))[:80])); print('PDFS',json.dumps(list(dict.fromkeys([h for h in hrefs if '.pdf' in h.lower()]))[:40])); print('KBART',json.dumps(list(dict.fromkeys([h for h in hrefs if 'community.fortinet.com/' in h and re.search(r'-\\d+,h)]))[:80])); print('PAGES',json.dumps(list(dict.fromkeys([h for h in hrefs if 'page=' in h.lower()]))[:40]));"
 
           echo ===== file sizes =====
           for %%F in (probe\*) do echo %%~nxF %%~zF
