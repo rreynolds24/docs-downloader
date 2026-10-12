@@ -85,9 +85,9 @@ if exist "%ROOT%\VERSION" set /p CURRENT_VERSION=<"%ROOT%\VERSION"
 set /p NEW_VERSION=<"!SOURCE!\VERSION"
 
 if /i "!CURRENT_VERSION!"=="!NEW_VERSION!" (
-  echo [PASS] Already current: v!CURRENT_VERSION!
-  rmdir /s /q "%WORK%" >nul 2>&1
-  exit /b 0
+  echo [INFO] Version is already v!CURRENT_VERSION!, but application files will still be reconciled.
+) else (
+  echo [INFO] Updating v!CURRENT_VERSION! to v!NEW_VERSION!...
 )
 
 echo [INFO] Creating rollback snapshot...
@@ -99,7 +99,7 @@ if !BACKUP_RC! GEQ 8 (
   exit /b 6
 )
 
-echo [INFO] Updating v!CURRENT_VERSION! to v!NEW_VERSION!...
+echo [INFO] Reconciling application files from repository package...
 robocopy.exe "!SOURCE!" "%ROOT%" /E /R:2 /W:1 /XD runtime .git /NFL /NDL /NJH /NJS /NP >nul
 set "ROBOCOPY_RC=!ERRORLEVEL!"
 if !ROBOCOPY_RC! GEQ 8 (
