@@ -83,7 +83,7 @@ if not defined CATEGORY_URL (
   echo [FAIL] No Knowledge Base category URL supplied.
   exit /b 2
 )
-if /i not "%CATEGORY_URL:~0,30%"=="https://community.fortinet.com/" (
+if /i not "%CATEGORY_URL:~0,31%"=="https://community.fortinet.com/" (
   echo [FAIL] Category URL must begin with https://community.fortinet.com/
   exit /b 2
 )
