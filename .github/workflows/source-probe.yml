@@ -1,0 +1,43 @@
+name: Source structure probe
+
+on:
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  probe:
+    runs-on: windows-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Probe Fortinet docs and Community source structures
+        shell: cmd
+        run: |
+          mkdir probe
+          curl.exe -L --fail --silent --show-error https://docs.fortinet.com/solution-hubs -o probe\solution-hubs.html
+          curl.exe -L --fail --silent --show-error https://docs.fortinet.com/sdwan/8.0 -o probe\sdwan.html
+          curl.exe -L --fail --silent --show-error https://community.fortinet.com/knowledge-base -o probe\kb.html
+          curl.exe -L --fail --silent --show-error https://community.fortinet.com/fortigate-3 -o probe\fortigate.html
+          curl.exe -L --fail --silent --show-error https://community.fortinet.com/sitemap.xml -o probe\sitemap.xml
+
+          echo ===== solution-hubs interesting lines =====
+          findstr /i /c:"/document/" /c:"/sdwan/" /c:"solution-hub" /c:"solution-hubs" probe\solution-hubs.html
+
+          echo ===== sdwan interesting lines =====
+          findstr /i /c:"/document/" /c:"reader-pdf" /c:"href=" /c:"solution" probe\sdwan.html
+
+          echo ===== KB interesting lines =====
+          findstr /i /c:"knowledge-base" /c:"api" /c:"article" /c:"fortigate-3" probe\kb.html
+
+          echo ===== FortiGate category interesting lines =====
+          findstr /i /c:"technical-tip" /c:"article" /c:"api" /c:"pagination" /c:"page=" /c:"fortigate-3/" probe\fortigate.html
+
+          echo ===== sitemap first article matches =====
+          findstr /i /c:"fortigate-3/" /c:"technical-tip" probe\sitemap.xml
+
+          echo ===== file sizes =====
+          for %%F in (probe\*) do echo %%~nxF %%~zF
