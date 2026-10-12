@@ -2,7 +2,7 @@
 setlocal EnableExtensions EnableDelayedExpansion
 cd /d "%~dp0"
 
-set "APP_VERSION=0.0.9"
+set "APP_VERSION=0.0.10"
 set "BASE_URL=https://docs.fortinet.com"
 set "RUNTIME=%~dp0runtime"
 set "TEMP_DIR=%RUNTIME%\temp"
