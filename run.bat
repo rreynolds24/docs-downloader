@@ -1,4 +1,5 @@
 @echo off
+rem v0.0.11 release-integrity marker
 setlocal
 cd /d "%~dp0"
 

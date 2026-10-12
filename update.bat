@@ -32,6 +32,7 @@ set "WORK=%ROOT%\runtime\temp\update"
 set "ZIP=%WORK%\latest.zip"
 set "EXTRACT=%WORK%\extract"
 set "BACKUP=%WORK%\backup"
+set "VERIFY_TMP=%WORK%\verify"
 
 where curl.exe >nul 2>&1
 if errorlevel 1 (
@@ -79,6 +80,30 @@ if not defined SOURCE (
   exit /b 5
 )
 
+echo [INFO] Validating staged update package...
+for %%F in (run.bat docs-downloader.bat solution-downloader.bat kb-downloader.bat update.bat install.bat VERSION scripts\fortinet-parser.js) do (
+  if not exist "!SOURCE!\%%F" (
+    echo [FAIL] Update package is missing required file: %%F
+    exit /b 5
+  )
+)
+findstr /x /c:":hubs" "!SOURCE!\solution-downloader.bat" >nul
+if errorlevel 1 (
+  echo [FAIL] Staged solution-downloader.bat is missing :hubs.
+  exit /b 5
+)
+findstr /x /c:":lookup_duplicate_remote" "!SOURCE!\solution-downloader.bat" >nul
+if errorlevel 1 (
+  echo [FAIL] Staged solution-downloader.bat is missing :lookup_duplicate_remote.
+  exit /b 5
+)
+findstr /x /c:":write_source" "!SOURCE!\solution-downloader.bat" >nul
+if errorlevel 1 (
+  echo [FAIL] Staged solution-downloader.bat is missing :write_source.
+  exit /b 5
+)
+echo [PASS] Staged update package integrity
+
 set "CURRENT_VERSION=unknown"
 set "NEW_VERSION=unknown"
 if exist "%ROOT%\VERSION" set /p CURRENT_VERSION=<"%ROOT%\VERSION"
@@ -99,14 +124,46 @@ if !BACKUP_RC! GEQ 8 (
   exit /b 6
 )
 
-echo [INFO] Reconciling application files from repository package...
-robocopy.exe "!SOURCE!" "%ROOT%" /E /R:2 /W:1 /XD runtime .git /NFL /NDL /NJH /NJS /NP >nul
-set "ROBOCOPY_RC=!ERRORLEVEL!"
-if !ROBOCOPY_RC! GEQ 8 (
-  echo [FAIL] File overlay failed. robocopy exit code !ROBOCOPY_RC!.
+echo [INFO] Reconciling critical application files...
+for %%F in (run.bat docs-downloader.bat solution-downloader.bat kb-downloader.bat update.bat install.bat VERSION) do (
+  copy /y "!SOURCE!\%%F" "%ROOT%\%%F" >nul
+  if errorlevel 1 (
+    echo [FAIL] Could not replace %%F.
+    call :rollback
+    exit /b 6
+  )
+)
+
+echo [INFO] Reconciling application directories...
+for %%D in (scripts docs tests .github) do (
+  if exist "!SOURCE!\%%D" (
+    if not exist "%ROOT%\%%D" mkdir "%ROOT%\%%D" >nul 2>&1
+    robocopy.exe "!SOURCE!\%%D" "%ROOT%\%%D" /E /IS /IT /R:2 /W:1 /NFL /NDL /NJH /NJS /NP >nul
+    set "ROBOCOPY_RC=!ERRORLEVEL!"
+    if !ROBOCOPY_RC! GEQ 8 (
+      echo [FAIL] Could not reconcile %%D. robocopy exit code !ROBOCOPY_RC!.
+      call :rollback
+      exit /b 6
+    )
+  )
+)
+
+echo [INFO] Verifying copied application files...
+for %%F in (run.bat docs-downloader.bat solution-downloader.bat kb-downloader.bat update.bat install.bat VERSION) do (
+  call :verify_same "!SOURCE!\%%F" "%ROOT%\%%F"
+  if errorlevel 1 (
+    echo [FAIL] Installed %%F does not match the staged update package.
+    call :rollback
+    exit /b 6
+  )
+)
+call :verify_same "!SOURCE!\scripts\fortinet-parser.js" "%ROOT%\scripts\fortinet-parser.js"
+if errorlevel 1 (
+  echo [FAIL] Installed scripts\fortinet-parser.js does not match the staged update package.
   call :rollback
   exit /b 6
 )
+echo [PASS] Application files match staged update package
 
 if not exist "%ROOT%\run.bat" (
   echo [FAIL] Updated run.bat is missing.
@@ -139,6 +196,18 @@ if errorlevel 1 (
 echo [PASS] Updated Fortinet Docs Downloader to v!VERIFY_VERSION!.
 echo [PASS] Existing runtime state and downloaded corpus were preserved.
 rmdir /s /q "%WORK%" >nul 2>&1
+exit /b 0
+
+:verify_same
+set "HASH_A="
+set "HASH_B="
+for /f "skip=1 tokens=* delims=" %%H in ('certutil.exe -hashfile "%~1" SHA256') do if not defined HASH_A set "HASH_A=%%H"
+for /f "skip=1 tokens=* delims=" %%H in ('certutil.exe -hashfile "%~2" SHA256') do if not defined HASH_B set "HASH_B=%%H"
+set "HASH_A=!HASH_A: =!"
+set "HASH_B=!HASH_B: =!"
+if not defined HASH_A exit /b 1
+if not defined HASH_B exit /b 1
+if /i not "!HASH_A!"=="!HASH_B!" exit /b 1
 exit /b 0
 
 :rollback

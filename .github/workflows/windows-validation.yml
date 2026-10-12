@@ -196,28 +196,57 @@ jobs:
           findstr /c:"Unchanged articles      : 2" kb-check.txt >nul
           if errorlevel 1 exit /b 51
 
-      - name: Native self-update reconciles same-version files and preserves runtime state
+      - name: Legacy v0.0.9 overlay can bootstrap refreshed Solution Hub module
         shell: cmd
         run: |
+          mkdir legacy-install
+          mkdir legacy-install\runtime
+          mkdir legacy-install\runtime\temp
+          mkdir legacy-install\runtime\temp\update
+          mkdir legacy-install\runtime\temp\update\extract
+          mkdir legacy-install\runtime\temp\update\extract\docs-downloader-main
+          > legacy-install\solution-downloader.bat echo @echo off
+          >> legacy-install\solution-downloader.bat echo :doctor
+          >> legacy-install\solution-downloader.bat echo exit /b 0
+          > legacy-install\VERSION echo 0.0.9
+          copy /y solution-downloader.bat legacy-install\runtime\temp\update\extract\docs-downloader-main\solution-downloader.bat >nul
+          copy /y VERSION legacy-install\runtime\temp\update\extract\docs-downloader-main\VERSION >nul
+          robocopy.exe legacy-install\runtime\temp\update\extract\docs-downloader-main legacy-install /E /R:2 /W:1 /XD runtime .git /NFL /NDL /NJH /NJS /NP >nul
+          set RC=%ERRORLEVEL%
+          if %RC% GEQ 8 exit /b 72
+          findstr /x /c:":hubs" legacy-install\solution-downloader.bat >nul
+          if errorlevel 1 exit /b 73
+          findstr /x /c:":lookup_duplicate_remote" legacy-install\solution-downloader.bat >nul
+          if errorlevel 1 exit /b 74
+
+      - name: Native self-update hash-verifies same-version files and preserves runtime state
+        shell: cmd
+        run: |
+          mkdir update-fixture
           mkdir update-fixture\docs-downloader-main
-          > update-fixture\docs-downloader-main\VERSION echo 0.0.10
-          > update-fixture\docs-downloader-main\run.bat echo @echo off
-          >> update-fixture\docs-downloader-main\run.bat echo exit /b 0
-          > update-fixture\docs-downloader-main\docs-downloader.bat echo @echo off
-          >> update-fixture\docs-downloader-main\docs-downloader.bat echo exit /b 0
-          > update-fixture\docs-downloader-main\install.bat echo @echo off
-          >> update-fixture\docs-downloader-main\install.bat echo exit /b 0
-          > update-fixture\docs-downloader-main\same-version-marker.txt echo repaired
+          mkdir update-fixture\docs-downloader-main\scripts
+          copy /y run.bat update-fixture\docs-downloader-main\run.bat >nul
+          copy /y docs-downloader.bat update-fixture\docs-downloader-main\docs-downloader.bat >nul
+          copy /y solution-downloader.bat update-fixture\docs-downloader-main\solution-downloader.bat >nul
+          copy /y kb-downloader.bat update-fixture\docs-downloader-main\kb-downloader.bat >nul
+          copy /y update.bat update-fixture\docs-downloader-main\update.bat >nul
+          copy /y install.bat update-fixture\docs-downloader-main\install.bat >nul
+          copy /y VERSION update-fixture\docs-downloader-main\VERSION >nul
+          copy /y scripts\fortinet-parser.js update-fixture\docs-downloader-main\scripts\fortinet-parser.js >nul
           tar.exe -a -cf update-fixture.zip -C update-fixture docs-downloader-main
-          if errorlevel 1 exit /b 52
+          if errorlevel 1 exit /b 75
           > runtime\preserve-me.txt echo persistent-state
-          if exist same-version-marker.txt del /q same-version-marker.txt
+          > solution-downloader.bat echo @echo off
+          >> solution-downloader.bat echo :doctor
+          >> solution-downloader.bat echo exit /b 0
           set "DOCS_DOWNLOADER_UPDATE_URL=file:///%CD:\=/%/update-fixture.zip"
           call run.bat update
           if errorlevel 1 exit /b %errorlevel%
-          findstr /x /c:"0.0.10" VERSION >nul
-          if errorlevel 1 exit /b 53
-          findstr /x /c:"repaired" same-version-marker.txt >nul
-          if errorlevel 1 exit /b 54
+          findstr /x /c:"0.0.11" VERSION >nul
+          if errorlevel 1 exit /b 76
+          findstr /x /c:":hubs" solution-downloader.bat >nul
+          if errorlevel 1 exit /b 77
+          findstr /x /c:":lookup_duplicate_remote" solution-downloader.bat >nul
+          if errorlevel 1 exit /b 78
           findstr /x /c:"persistent-state" runtime\preserve-me.txt >nul
-          if errorlevel 1 exit /b 55
+          if errorlevel 1 exit /b 79

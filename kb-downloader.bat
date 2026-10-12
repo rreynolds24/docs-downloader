@@ -1,4 +1,5 @@
 @echo off
+rem v0.0.11 release-integrity marker
 setlocal EnableExtensions EnableDelayedExpansion
 cd /d "%~dp0"
 
