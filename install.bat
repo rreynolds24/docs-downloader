@@ -33,6 +33,27 @@ if errorlevel 1 (
 )
 echo [PASS] certutil.exe
 
+where cscript.exe >nul 2>&1
+if errorlevel 1 (
+  echo [FAIL] cscript.exe is unavailable. Solution Hub and Knowledge Base parsing require Windows Script Host.
+  exit /b 1
+)
+echo [PASS] cscript.exe
+
+where tar.exe >nul 2>&1
+if errorlevel 1 (
+  echo [FAIL] tar.exe is unavailable. Native self-update requires the Windows inbox tar.exe.
+  exit /b 1
+)
+echo [PASS] tar.exe
+
+where robocopy.exe >nul 2>&1
+if errorlevel 1 (
+  echo [FAIL] robocopy.exe is unavailable. Native self-update requires robocopy.exe.
+  exit /b 1
+)
+echo [PASS] robocopy.exe
+
 if not exist "runtime" mkdir "runtime"
 if not exist "runtime\downloads" mkdir "runtime\downloads"
 if not exist "runtime\temp" mkdir "runtime\temp"
