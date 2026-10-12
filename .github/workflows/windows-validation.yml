@@ -99,3 +99,104 @@ jobs:
         run: |
           call run.bat inventory https://docs.fortinet.com/product/fortiweb/
           if errorlevel 1 exit /b %errorlevel%
+
+      - name: Live Solution Hub index discovery
+        shell: cmd
+        run: |
+          call run.bat hubs > hubs.txt
+          set RC=%ERRORLEVEL%
+          type hubs.txt
+          if not "%RC%"=="0" exit /b %RC%
+          findstr /i /c:"https://docs.fortinet.com/sdwan" hubs.txt >nul
+          if errorlevel 1 exit /b 39
+
+      - name: Live Solution Hub SD-WAN inventory
+        shell: cmd
+        run: |
+          call run.bat inventory https://docs.fortinet.com/sdwan/8.0 > solution-inventory.txt
+          set RC=%ERRORLEVEL%
+          type solution-inventory.txt
+          if not "%RC%"=="0" exit /b %RC%
+          findstr /c:"Resources discovered" solution-inventory.txt >nul
+          if errorlevel 1 exit /b 40
+          findstr /c:"PDF targets resolved   : 0" solution-inventory.txt >nul
+          if not errorlevel 1 exit /b 41
+          if not exist runtime\state\sources.db exit /b 42
+          findstr /c:"https://docs.fortinet.com/sdwan/8.0" runtime\state\sources.db >nul
+          if errorlevel 1 exit /b 43
+
+      - name: Live Solution Hub download de-duplicates curated references
+        shell: cmd
+        run: |
+          call run.bat download https://docs.fortinet.com/sdwan/8.0 > solution-download.txt
+          set RC=%ERRORLEVEL%
+          type solution-download.txt
+          if not "%RC%"=="0" exit /b %RC%
+          findstr /c:"Downloaded             : 0" solution-download.txt >nul
+          if not errorlevel 1 exit /b 60
+          findstr /c:"Duplicate downloads avoided: 0" solution-download.txt >nul
+          if not errorlevel 1 exit /b 61
+
+          call run.bat download https://docs.fortinet.com/sdwan/8.0 > solution-second.txt
+          set RC=%ERRORLEVEL%
+          type solution-second.txt
+          if not "%RC%"=="0" exit /b %RC%
+          findstr /c:"Downloaded             : 0" solution-second.txt >nul
+          if errorlevel 1 exit /b 62
+
+      - name: Live Knowledge Base category discovery
+        shell: cmd
+        run: |
+          call run.bat kb categories > kb-categories.txt
+          set RC=%ERRORLEVEL%
+          type kb-categories.txt
+          if not "%RC%"=="0" exit /b %RC%
+          findstr /i /c:"FortiGate" kb-categories.txt >nul
+          if errorlevel 1 exit /b 44
+          findstr /i /c:"https://community.fortinet.com/fortigate-3" kb-categories.txt >nul
+          if errorlevel 1 exit /b 45
+
+      - name: Live Knowledge Base bounded sync and repeat check
+        shell: cmd
+        run: |
+          call run.bat kb sync https://community.fortinet.com/fortigate-3 2 > kb-sync.txt
+          set RC=%ERRORLEVEL%
+          type kb-sync.txt
+          if not "%RC%"=="0" exit /b %RC%
+          findstr /c:"Articles discovered     : 2" kb-sync.txt >nul
+          if errorlevel 1 exit /b 46
+          findstr /c:"Downloaded/updated      : 2" kb-sync.txt >nul
+          if errorlevel 1 exit /b 47
+          if not exist runtime\state\kb.db exit /b 48
+          if not exist runtime\kb\articles\fortigate-3\article-1.html exit /b 49
+
+          call run.bat kb check https://community.fortinet.com/fortigate-3 2 > kb-check.txt
+          set RC=%ERRORLEVEL%
+          type kb-check.txt
+          if not "%RC%"=="0" exit /b %RC%
+          findstr /c:"Articles discovered     : 2" kb-check.txt >nul
+          if errorlevel 1 exit /b 50
+          findstr /c:"Unchanged articles      : 2" kb-check.txt >nul
+          if errorlevel 1 exit /b 51
+
+      - name: Native self-update preserves runtime state
+        shell: cmd
+        run: |
+          mkdir update-fixture\docs-downloader-main
+          > update-fixture\docs-downloader-main\VERSION echo 9.9.9
+          > update-fixture\docs-downloader-main\run.bat echo @echo off
+          >> update-fixture\docs-downloader-main\run.bat echo exit /b 0
+          > update-fixture\docs-downloader-main\docs-downloader.bat echo @echo off
+          >> update-fixture\docs-downloader-main\docs-downloader.bat echo exit /b 0
+          > update-fixture\docs-downloader-main\install.bat echo @echo off
+          >> update-fixture\docs-downloader-main\install.bat echo exit /b 0
+          tar.exe -a -cf update-fixture.zip -C update-fixture docs-downloader-main
+          if errorlevel 1 exit /b 52
+          > runtime\preserve-me.txt echo persistent-state
+          set "DOCS_DOWNLOADER_UPDATE_URL=file:///%CD:\=/%/update-fixture.zip"
+          call run.bat update
+          if errorlevel 1 exit /b %errorlevel%
+          findstr /x /c:"9.9.9" VERSION >nul
+          if errorlevel 1 exit /b 53
+          findstr /x /c:"persistent-state" runtime\preserve-me.txt >nul
+          if errorlevel 1 exit /b 54

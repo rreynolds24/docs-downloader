@@ -2,7 +2,7 @@
 setlocal EnableExtensions EnableDelayedExpansion
 cd /d "%~dp0"
 
-set "APP_VERSION=0.0.8"
+set "APP_VERSION=0.0.9"
 set "BASE_URL=https://docs.fortinet.com"
 set "RUNTIME=%~dp0runtime"
 set "TEMP_DIR=%RUNTIME%\temp"
@@ -54,8 +54,8 @@ if not "%~1"=="" (
 cls
 call :banner
 echo.
-echo   1. Download/synchronize PDFs
-echo   2. Inventory PDFs without downloading
+echo   1. Download/synchronize product or solution PDFs
+echo   2. Inventory product or solution resources
 echo   3. Check for new or changed document versions
 echo   4. Doctor / environment check
 echo   5. Exit
@@ -91,11 +91,21 @@ if not defined TARGET_URL (
   exit /b 2
 )
 
+set "DOCS_PREFIX=%TARGET_URL:~0,26%"
+if /i not "%DOCS_PREFIX%"=="https://docs.fortinet.com/" (
+  echo [FAIL] Documentation URL must begin with:
+  echo        https://docs.fortinet.com/
+  exit /b 2
+)
+
 set "URL_PREFIX=%TARGET_URL:~0,34%"
 if /i not "%URL_PREFIX%"=="https://docs.fortinet.com/product/" (
-  echo [FAIL] URL must begin with:
-  echo        https://docs.fortinet.com/product/
-  exit /b 2
+  if not exist "%~dp0solution-downloader.bat" (
+    echo [FAIL] Solution Hub module is missing.
+    exit /b 2
+  )
+  call "%~dp0solution-downloader.bat" "%MODE%" "%TARGET_URL%"
+  exit /b %errorlevel%
 )
 
 call :doctor_quiet
@@ -998,6 +1008,24 @@ if errorlevel 1 (
   set "DOCTOR_FAIL=1"
 ) else echo [PASS] certutil.exe
 
+where cscript.exe >nul 2>&1
+if errorlevel 1 (
+  echo [FAIL] cscript.exe
+  set "DOCTOR_FAIL=1"
+) else echo [PASS] cscript.exe
+
+where tar.exe >nul 2>&1
+if errorlevel 1 (
+  echo [FAIL] tar.exe
+  set "DOCTOR_FAIL=1"
+) else echo [PASS] tar.exe
+
+where robocopy.exe >nul 2>&1
+if errorlevel 1 (
+  echo [FAIL] robocopy.exe
+  set "DOCTOR_FAIL=1"
+) else echo [PASS] robocopy.exe
+
 if exist "%TEMP_DIR%" (
   echo [PASS] runtime\temp
 ) else (
@@ -1054,7 +1082,7 @@ echo(#####       #####   ###################################################
 echo(#####       #####   ##                                               ##
 echo(#####       #####   ## Discover, version and synchronize docs         ##
 echo(                    ## directly from docs.fortinet.com                ##
-echo(##### ##### #####   ## Windows native: cmd + curl + certutil          ##
+echo(##### ##### #####   ## Windows native: inbox tools only              ##
 echo( #### ##### ####    ## v%APP_VERSION%                                         ##
 echo(  ### ##### ###     ###################################################
 exit /b 0
