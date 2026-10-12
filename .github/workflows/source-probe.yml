@@ -24,6 +24,8 @@ jobs:
           curl.exe -L --fail --silent --show-error https://community.fortinet.com/fortigate-3 -o probe\fortigate.html
           curl.exe -L --fail --silent --show-error "https://community.fortinet.com/fortigate-3?page=2" -o probe\fortigate-page2.html
           curl.exe -L --fail --silent --show-error https://community.fortinet.com/sitemap.xml -o probe\sitemap.xml
+          curl.exe -L --fail --silent --show-error https://community.fortinet.com/sitemap-topics-1.xml -o probe\topics1.xml
+          curl.exe -L --fail --silent --show-error https://community.fortinet.com/sitemap-topics-2.xml -o probe\topics2.xml
 
           echo ===== solution-hubs interesting lines =====
           findstr /i /c:"/document/" /c:"/sdwan/" /c:"solution-hub" /c:"solution-hubs" probe\solution-hubs.html
@@ -41,7 +43,11 @@ jobs:
           type probe\sitemap.xml
 
           echo ===== python structural summary =====
-          python -c "import re,json,pathlib; from html import unescape; files=['solution-hubs','sdwan','kb','fortigate','fortigate-page2'];for n in files: s=pathlib.Path('probe/'+n+'.html').read_text(encoding='utf-8',errors='ignore'); hrefs=re.findall(r'href=[\"\']([^\"\']+)',s,re.I); print('FILE',n,'HREFS',len(hrefs)); print('DOCS',json.dumps(list(dict.fromkeys([h for h in hrefs if '/document/' in h]))[:80])); print('PDFS',json.dumps(list(dict.fromkeys([h for h in hrefs if '.pdf' in h.lower()]))[:40])); print('KBART',json.dumps(list(dict.fromkeys([h for h in hrefs if 'community.fortinet.com/' in h and re.search(r'-\\d+,h)]))[:80])); print('PAGES',json.dumps(list(dict.fromkeys([h for h in hrefs if 'page=' in h.lower()]))[:40]));"
+          python -c "import re,pathlib; s=pathlib.Path(r'probe\sdwan.html').read_text(encoding='utf-8',errors='ignore'); h=re.findall(r'href=[\"\x27]([^\"\x27]+)',s,re.I); d=list(dict.fromkeys([x for x in h if '/document/' in x])); p=list(dict.fromkeys([x for x in h if '.pdf' in x.lower()])); print('SDWAN_DOC_LINKS',len(d)); print(*d[:40],sep='\n'); print('SDWAN_PDF_LINKS',len(p)); print(*p[:20],sep='\n')"
+          python -c "import re,pathlib; s=pathlib.Path(r'probe\solution-hubs.html').read_text(encoding='utf-8',errors='ignore'); h=re.findall(r'href=[\"\x27]([^\"\x27]+)',s,re.I); x=list(dict.fromkeys([v for v in h if v.startswith('/') and v not in ['/solution-hubs']])); print('HUB_LINKS',len(x)); print(*[v for v in x if not v.startswith('/product/')][:80],sep='\n')"
+          python -c "import re,pathlib; s=pathlib.Path(r'probe\fortigate.html').read_text(encoding='utf-8',errors='ignore'); h=re.findall(r'href=[\"\x27]([^\"\x27]+)',s,re.I); a=list(dict.fromkeys([x for x in h if 'community.fortinet.com/fortigate-3/' in x and re.search(r'-\d+$',x)])); print('FORTIGATE_PAGE1_ARTICLES',len(a)); print(*a[:30],sep='\n')"
+          python -c "import re,pathlib; s=pathlib.Path(r'probe\fortigate-page2.html').read_text(encoding='utf-8',errors='ignore'); h=re.findall(r'href=[\"\x27]([^\"\x27]+)',s,re.I); a=list(dict.fromkeys([x for x in h if 'community.fortinet.com/fortigate-3/' in x and re.search(r'-\d+$',x)])); print('FORTIGATE_PAGE2_ARTICLES',len(a)); print(*a[:30],sep='\n')"
+          python -c "import re,pathlib; s=''.join(pathlib.Path(r'probe\\'+n).read_text(encoding='utf-8',errors='ignore') for n in ['topics1.xml','topics2.xml']); u=re.findall(r'<loc>([^<]+)</loc>',s,re.I); a=[x for x in u if '/fortigate-3/' in x]; print('FORTIGATE_SITEMAP_ARTICLES',len(a)); print(*a[:20],sep='\n')"
 
           echo ===== file sizes =====
           for %%F in (probe\*) do echo %%~nxF %%~zF
