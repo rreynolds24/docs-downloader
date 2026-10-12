@@ -39,6 +39,11 @@ if not exist "runtime\temp" mkdir "runtime\temp"
 if not exist "runtime\state" mkdir "runtime\state"
 if not exist "runtime\state\downloads.db" type nul > "runtime\state\downloads.db"
 if not exist "runtime\state\catalogue.db" type nul > "runtime\state\catalogue.db"
+if not exist "runtime\state\sources.db" type nul > "runtime\state\sources.db"
+if not exist "runtime\state\kb.db" type nul > "runtime\state\kb.db"
+if not exist "runtime\state\kb-history.db" type nul > "runtime\state\kb-history.db"
+if not exist "runtime\kb" mkdir "runtime\kb"
+if not exist "runtime\kb\articles" mkdir "runtime\kb\articles"
 
 if not exist "runtime\downloads" (
   echo [FAIL] Could not create runtime\downloads.
@@ -60,8 +65,20 @@ if not exist "runtime\state\catalogue.db" (
   echo [FAIL] Could not create runtime\state\catalogue.db.
   exit /b 1
 )
+if not exist "runtime\state\sources.db" (
+  echo [FAIL] Could not create runtime\state\sources.db.
+  exit /b 1
+)
+if not exist "runtime\state\kb.db" (
+  echo [FAIL] Could not create runtime\state\kb.db.
+  exit /b 1
+)
+if not exist "runtime\kb\articles" (
+  echo [FAIL] Could not create runtime\kb\articles.
+  exit /b 1
+)
 
-echo [PASS] runtime directories, tracking database, and version catalogue
+echo [PASS] runtime directories, tracking databases, and corpus state
 echo.
 echo Installation check complete.
 echo Launch with: run.bat
