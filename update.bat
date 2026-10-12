@@ -31,6 +31,7 @@ if defined DOCS_DOWNLOADER_UPDATE_URL set "UPDATE_URL=%DOCS_DOWNLOADER_UPDATE_UR
 set "WORK=%ROOT%\runtime\temp\update"
 set "ZIP=%WORK%\latest.zip"
 set "EXTRACT=%WORK%\extract"
+set "BACKUP=%WORK%\backup"
 
 where curl.exe >nul 2>&1
 if errorlevel 1 (
@@ -89,11 +90,21 @@ if /i "!CURRENT_VERSION!"=="!NEW_VERSION!" (
   exit /b 0
 )
 
+echo [INFO] Creating rollback snapshot...
+mkdir "%BACKUP%" >nul 2>&1
+robocopy.exe "%ROOT%" "%BACKUP%" /E /R:2 /W:1 /XD runtime .git /NFL /NDL /NJH /NJS /NP >nul
+set "BACKUP_RC=!ERRORLEVEL!"
+if !BACKUP_RC! GEQ 8 (
+  echo [FAIL] Could not create rollback snapshot. robocopy exit code !BACKUP_RC!.
+  exit /b 6
+)
+
 echo [INFO] Updating v!CURRENT_VERSION! to v!NEW_VERSION!...
 robocopy.exe "!SOURCE!" "%ROOT%" /E /R:2 /W:1 /XD runtime .git /NFL /NDL /NJH /NJS /NP >nul
 set "ROBOCOPY_RC=!ERRORLEVEL!"
 if !ROBOCOPY_RC! GEQ 8 (
   echo [FAIL] File overlay failed. robocopy exit code !ROBOCOPY_RC!.
+  call :rollback
   exit /b 6
 )
 
@@ -121,10 +132,23 @@ echo [INFO] Running updated installer/doctor...
 call "%ROOT%\install.bat"
 if errorlevel 1 (
   echo [FAIL] Updated files were applied, but install/doctor failed.
+  call :rollback
   exit /b 9
 )
 
 echo [PASS] Updated Fortinet Docs Downloader to v!VERIFY_VERSION!.
 echo [PASS] Existing runtime state and downloaded corpus were preserved.
 rmdir /s /q "%WORK%" >nul 2>&1
+exit /b 0
+
+:rollback
+if not exist "%BACKUP%" exit /b 1
+echo [INFO] Restoring previous application files...
+robocopy.exe "%BACKUP%" "%ROOT%" /E /R:2 /W:1 /NFL /NDL /NJH /NJS /NP >nul
+set "ROLLBACK_RC=!ERRORLEVEL!"
+if !ROLLBACK_RC! GEQ 8 (
+  echo [FAIL] Automatic rollback also failed. Runtime state remains preserved.
+  exit /b 1
+)
+echo [PASS] Previous application files restored. Runtime state was preserved.
 exit /b 0
