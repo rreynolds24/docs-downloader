@@ -4,7 +4,7 @@ Portable Windows-native CLI for discovering and downloading PDF documentation fr
 
 ## Status
 
-**Current release: v0.0.8**
+**Current release: v0.0.9**
 
 The core workflow is validated end to end on both:
 
@@ -216,3 +216,92 @@ See `docs/TRACKING.md` for the tracking-state format and change-detection rules.
 
 
 See `docs/CATALOGUE.md` for the version/history schema and de-duplication rules.
+
+
+## v0.0.9 multi-source acquisition
+
+The downloader now supports three Fortinet source families while preserving a shared local corpus.
+
+### Product documentation
+
+Existing product URLs continue to work unchanged:
+
+```bat
+run.bat inventory https://docs.fortinet.com/product/fortipam/7.0
+run.bat check https://docs.fortinet.com/product/fortipam/7.0
+run.bat download https://docs.fortinet.com/product/fortipam/7.0
+```
+
+### Specialist Solution Hubs
+
+List the current Solution Hub entries:
+
+```bat
+run.bat hubs
+```
+
+Use a solution page with the normal inventory/check/download commands:
+
+```bat
+run.bat inventory https://docs.fortinet.com/sdwan/8.0
+run.bat check https://docs.fortinet.com/sdwan/8.0
+run.bat download https://docs.fortinet.com/sdwan/8.0
+```
+
+Solution pages can curate deep links into existing product guides and direct Fortinet-hosted PDF resources. They use the same `catalogue.db` and SHA-256 content identity as product downloads, so a guide already present through a product page is reused rather than downloaded again.
+
+Solution-to-resource provenance is retained in:
+
+```text
+runtime\state\sources.db
+```
+
+### Fortinet Community Knowledge Base
+
+List discoverable KB product/use-case categories:
+
+```bat
+run.bat kb categories
+```
+
+Inventory or check a category without fetching article bodies:
+
+```bat
+run.bat kb inventory https://community.fortinet.com/fortigate-3
+run.bat kb check https://community.fortinet.com/fortigate-3
+```
+
+Synchronize the category's article corpus:
+
+```bat
+run.bat kb sync https://community.fortinet.com/fortigate-3
+```
+
+An optional final numeric argument limits processing, which is useful for testing:
+
+```bat
+run.bat kb sync https://community.fortinet.com/fortigate-3 10
+```
+
+Article discovery uses Fortinet Community's topic sitemaps rather than the category page's featured-content stream. Raw article HTML is retained losslessly under:
+
+```text
+runtime\kb\articles\<category>\
+```
+
+Current state and prior changed revisions are tracked in:
+
+```text
+runtime\state\kb.db
+runtime\state\kb-history.db
+```
+
+### Native self-update
+
+Update the application from the current `main` branch:
+
+```bat
+run.bat update
+```
+
+The updater uses Windows-native `curl.exe`, `tar.exe`, and `robocopy.exe`. It stages itself under `runtime\temp`, downloads/extracts the GitHub ZIP, overlays application files, verifies the new version, and runs the updated installer. The entire `runtime\` tree is excluded from the overlay so PDFs, KB articles, and state databases survive upgrades.
