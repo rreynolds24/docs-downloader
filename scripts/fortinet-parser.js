@@ -117,7 +117,9 @@
       if (filter && url.toLowerCase().indexOf(filter) < 0) continue;
       var dm = /<lastmod>([^<]+)<\/lastmod>/i.exec(block);
       var lastmod = dm ? decode(dm[1]) : "-";
-      uniqPush(out, seen, url + "|" + lastmod);
+      var im = /-(\d+)$/.exec(url);
+      var articleId = im ? im[1] : "-";
+      uniqPush(out, seen, url + "|" + lastmod + "|" + articleId);
     }
   } else if (mode === "kb-categories") {
     re = /<a\b[^>]*\bclass\s*=\s*["'][^"']*card_url[^"']*["'][^>]*\bhref\s*=\s*["']([^"']+)["'][^>]*>[\s\S]*?<h3\b[^>]*>([^<]+)<\/h3>[\s\S]*?<\/article>/ig;
