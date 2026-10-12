@@ -330,8 +330,7 @@ set "DOC_FAMILY=resource"
 set "DOC_VERSION=unknown"
 set "URL_PATH=%~1"
 if /i "!URL_PATH:~0,35!"=="https://docs.fortinet.com/document/" (
-  set "URL_PATH=!URL_PATH:~25!"
-  for /f "tokens=2,3,4 delims=/" %%A in ("!URL_PATH!") do (
+  for /f "tokens=4,5,6 delims=/" %%A in ("!URL_PATH!") do (
     set "PRODUCT_ID=%%A"
     set "SOURCE_VERSION=%%B"
     set "DOC_FAMILY=%%C"
