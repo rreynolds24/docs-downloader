@@ -122,10 +122,16 @@
       uniqPush(out, seen, url + "|" + lastmod + "|" + articleId);
     }
   } else if (mode === "kb-categories") {
-    re = /<a\b[^>]*\bclass\s*=\s*["'][^"']*card_url[^"']*["'][^>]*\bhref\s*=\s*["']([^"']+)["'][^>]*>[\s\S]*?<h3\b[^>]*>([^<]+)<\/h3>[\s\S]*?<\/article>/ig;
+    re = /<article\b[^>]*knowledge-base__card[\s\S]*?<\/article>/ig;
     while ((m = re.exec(s)) !== null) {
-      var u = decode(m[1]);
-      var title = decode(m[2]).replace(/\|/g, "/");
+      var block = m[0];
+      var am = /<a\b[^>]*>/i.exec(block);
+      var tm = /<h3\b[^>]*>([^<]+)<\/h3>/i.exec(block);
+      if (!am || !tm || !/\bcard_url\b/i.test(am[0])) continue;
+      var um = /href\s*=\s*["']([^"']+)["']/i.exec(am[0]);
+      if (!um) continue;
+      var u = decode(um[1]);
+      var title = decode(tm[1]).replace(/\|/g, "/");
       if (u.toLowerCase().indexOf("https://community.fortinet.com/") === 0) {
         uniqPush(out, seen, title + "|" + u);
       }
