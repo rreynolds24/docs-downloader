@@ -2,6 +2,7 @@
 // Usage:
 //   cscript //nologo scripts\fortinet-parser.js solution <html> <out>
 //   cscript //nologo scripts\fortinet-parser.js hubs <html> <out>
+//   cscript //nologo scripts\fortinet-parser.js ordering-guides <html> <out>
 //   cscript //nologo scripts\fortinet-parser.js readerpdf <html> <out>
 //   cscript //nologo scripts\fortinet-parser.js sitemap-index <xml> <out>
 //   cscript //nologo scripts\fortinet-parser.js sitemap <xml> <out> <category-path>
@@ -75,6 +76,27 @@
         lower.indexOf(".pdf") > 0
       ) {
         uniqPush(out, seen, "PDF|" + href);
+      }
+    }
+  } else if (mode === "ordering-guides") {
+    // Ordering Guides portal: only explicitly linked Fortinet-hosted PDFs
+    // or Fortinet Document Library reader pages are in scope.
+    re = /<a\b[^>]*\bhref\s*=\s*["']([^"']+)["'][^>]*>/ig;
+    while ((m = re.exec(s)) !== null) {
+      var link = decode(m[1]).replace(/\\u002f/gi, "/").replace(/\\\\/g, "");
+      var low = link.toLowerCase();
+      if (low.indexOf("/document/") === 0) {
+        uniqPush(out, seen, "DOC|https://docs.fortinet.com" + link);
+      } else if (low.indexOf("https://docs.fortinet.com/document/") === 0) {
+        uniqPush(out, seen, "DOC|" + link);
+      } else {
+        if (low.indexOf("/content/dam/fortinet/") === 0) link = "https://www.fortinet.com" + link;
+        low = link.toLowerCase();
+        if (/^https:\/\/(www\.)?fortinet\.com\//i.test(link) && /\.pdf(?:[?#]|$)/i.test(link)) {
+          uniqPush(out, seen, "PDF|" + link);
+        } else if (/^https:\/\/fortinetweb\.s3\.amazonaws\.com\//i.test(link) && /\.pdf(?:[?#]|$)/i.test(link)) {
+          uniqPush(out, seen, "PDF|" + link);
+        }
       }
     }
   } else if (mode === "hubs") {

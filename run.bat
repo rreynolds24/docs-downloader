@@ -1,6 +1,6 @@
 @echo off
 rem v0.0.12 CRLF ZIP-distribution marker
-setlocal
+setlocal EnableDelayedExpansion
 cd /d "%~dp0"
 
 if /i "%~1"=="update" (
@@ -9,6 +9,19 @@ if /i "%~1"=="update" (
     exit /b 1
   )
   call "%~dp0update.bat"
+  exit /b %errorlevel%
+)
+
+if /i "%~1"=="ordering-guides" (
+  set "ORDERING_MODE=ordering-guides"
+  if /i "%~2"=="check" set "ORDERING_MODE=ordering-check"
+  if /i "%~2"=="inventory" set "ORDERING_MODE=ordering-inventory"
+  if /i "%~2"=="download" set "ORDERING_MODE=ordering-guides"
+  if not "%~2"=="" if /i not "%~2"=="check" if /i not "%~2"=="inventory" if /i not "%~2"=="download" (
+    echo [FAIL] Usage: run.bat ordering-guides [inventory^|check^|download]
+    exit /b 2
+  )
+  call "%~dp0solution-downloader.bat" "!ORDERING_MODE!"
   exit /b %errorlevel%
 )
 

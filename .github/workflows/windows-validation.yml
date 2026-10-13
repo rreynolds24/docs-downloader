@@ -146,6 +146,33 @@ jobs:
           call run.bat inventory https://docs.fortinet.com/product/fortiweb/
           if errorlevel 1 exit /b %errorlevel%
 
+      - name: Ordering guide parser fixture
+        shell: cmd
+        run: |
+          > ordering-fixture.html echo ^<a href="https://www.fortinet.com/content/dam/fortinet/assets/datasheets/og-example.pdf"^>Guide^</a^>
+          >> ordering-fixture.html echo ^<a href="/document/fortipam/7.0/administration-guide"^>Document^</a^>
+          >> ordering-fixture.html echo ^<a href="https://evil.example/og-malicious.pdf"^>Ignore^</a^>
+          cscript.exe //nologo scripts\\fortinet-parser.js ordering-guides ordering-fixture.html ordering-fixture.txt
+          if errorlevel 1 exit /b 86
+          findstr /c:"og-example.pdf" ordering-fixture.txt >nul
+          if errorlevel 1 exit /b 87
+          findstr /c:"administration-guide" ordering-fixture.txt >nul
+          if errorlevel 1 exit /b 88
+          findstr /c:"evil.example" ordering-fixture.txt >nul
+          if not errorlevel 1 exit /b 89
+
+      - name: Live ordering guides inventory
+        shell: cmd
+        run: |
+          call run.bat ordering-guides inventory > ordering-inventory.txt
+          set RC=%ERRORLEVEL%
+          type ordering-inventory.txt
+          if not "%RC%"=="0" exit /b %RC%
+          findstr /c:"Resources discovered" ordering-inventory.txt >nul
+          if errorlevel 1 exit /b 90
+          findstr /c:"PDF targets resolved   : 0" ordering-inventory.txt >nul
+          if not errorlevel 1 exit /b 91
+
       - name: Live Solution Hub index discovery
         shell: cmd
         run: |
@@ -271,7 +298,7 @@ jobs:
           set "DOCS_DOWNLOADER_UPDATE_URL=file:///%CD:\=/%/update-fixture.zip"
           call run.bat update
           if errorlevel 1 exit /b %errorlevel%
-          findstr /x /c:"0.0.13" VERSION >nul
+          findstr /x /c:"0.0.14" VERSION >nul
           if errorlevel 1 exit /b 76
           findstr /x /c:":hubs" solution-downloader.bat >nul
           if errorlevel 1 exit /b 77
@@ -283,5 +310,5 @@ jobs:
           set RC=%ERRORLEVEL%
           type post-update-doctor.txt
           if not "%RC%"=="0" exit /b %RC%
-          findstr /c:"v0.0.13" post-update-doctor.txt >nul
+          findstr /c:"v0.0.14" post-update-doctor.txt >nul
           if errorlevel 1 exit /b 85
