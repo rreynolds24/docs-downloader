@@ -25,6 +25,22 @@ set "DOWNLOAD_TMP=%TEMP_DIR%\solution-download.tmp"
 set "PARSER=%~dp0scripts\fortinet-parser.js"
 
 if /i "%MODE%"=="hubs" goto :hubs
+set "PARSER_MODE=solution"
+if /i "%MODE%"=="ordering-guides" (
+  set "MODE=download"
+  set "TARGET_URL=https://docs.fortinet.com/ordering-guides"
+  set "PARSER_MODE=ordering-guides"
+)
+if /i "%MODE%"=="ordering-check" (
+  set "MODE=check"
+  set "TARGET_URL=https://docs.fortinet.com/ordering-guides"
+  set "PARSER_MODE=ordering-guides"
+)
+if /i "%MODE%"=="ordering-inventory" (
+  set "MODE=inventory"
+  set "TARGET_URL=https://docs.fortinet.com/ordering-guides"
+  set "PARSER_MODE=ordering-guides"
+)
 if /i not "%MODE%"=="inventory" if /i not "%MODE%"=="check" if /i not "%MODE%"=="download" (
   echo [FAIL] Solution module mode must be inventory, check, download, or hubs.
   exit /b 2
@@ -50,7 +66,7 @@ if errorlevel 1 (
   exit /b 3
 )
 
-cscript.exe //nologo "%PARSER%" solution "%PAGE_HTML%" "%RESOURCE_LIST%"
+cscript.exe //nologo "%PARSER%" !PARSER_MODE! "%PAGE_HTML%" "%RESOURCE_LIST%"
 if errorlevel 1 (
   echo [FAIL] No supported Fortinet resources were discovered on the Solution Hub page.
   exit /b 4
@@ -171,7 +187,7 @@ for /f "usebackq tokens=1,* delims=|" %%A in ("%RESOURCE_LIST%") do (
 
 echo.
 echo ------------------------------------------------------------
-echo Solution page          : %TARGET_URL%
+echo Resource index         : %TARGET_URL%
 echo Resources discovered   : !TOTAL!
 echo PDF targets resolved   : !RESOLVED!
 echo No PDF available       : !NO_PDF!
