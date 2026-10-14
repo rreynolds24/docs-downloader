@@ -279,6 +279,43 @@ jobs:
           findstr /x /c:":lookup_duplicate_remote" legacy-install\solution-downloader.bat >nul
           if errorlevel 1 exit /b 74
 
+      - name: Legacy corpus reconciliation and idempotence
+        shell: cmd
+        run: |
+          mkdir legacy-corpus-test
+          mkdir legacy-corpus-test\downloads
+          mkdir legacy-corpus-test\state
+          > legacy-corpus-test\downloads\catalogued.pdf echo legacy-catalogued
+          > legacy-corpus-test\downloads\manifest-only.pdf echo legacy-manifest
+          > legacy-corpus-test\downloads\orphan.pdf echo legacy-orphan
+          > legacy-corpus-test\state\catalogue.db echo https://docs.fortinet.com/document/fortipam/7.0/catalogued^|fortipam^|admin^|7.0^|7.0^|https://example.test/a.pdf^|catalogued.pdf^|-^|-^|unverified^|first^|last^|catalogued.pdf^|CURRENT^|https://docs.fortinet.com/product/fortipam/7.0
+          > legacy-corpus-test\state\downloads.db echo https://docs.fortinet.com/document/fortipam/7.0/catalogued^|https://example.test/a.pdf^|catalogued.pdf^|-^|catalogued.pdf
+          >> legacy-corpus-test\state\downloads.db echo https://docs.fortinet.com/document/fortigate/7.6/manifest^|https://example.test/b.pdf^|manifest-only.pdf^|-^|manifest-only.pdf
+          > legacy-corpus-test\state\sources.db echo https://docs.fortinet.com/sdwan/8.0^|https://docs.fortinet.com/document/fortipam/7.0/catalogued^|https://example.test/a.pdf^|unverified^|first^|last^|catalogued.pdf
+          cscript.exe //nologo scripts\corpus-layout.js migrate legacy-corpus-test > legacy-corpus-first.txt
+          if errorlevel 1 exit /b 110
+          type legacy-corpus-first.txt
+          if not exist legacy-corpus-test\downloads\products\fortipam\7.0\catalogued.pdf exit /b 111
+          if not exist legacy-corpus-test\downloads\products\fortigate\7.6\manifest-only.pdf exit /b 112
+          if not exist legacy-corpus-test\downloads\unclassified\orphan.pdf exit /b 113
+          if exist legacy-corpus-test\downloads\*.pdf exit /b 114
+          findstr /c:"Files moved          : 3" legacy-corpus-first.txt >nul
+          if errorlevel 1 exit /b 115
+          findstr /c:"Unclassified PDFs    : 1" legacy-corpus-first.txt >nul
+          if errorlevel 1 exit /b 116
+          findstr /c:"products\fortipam\7.0\catalogued.pdf" legacy-corpus-test\state\catalogue.db >nul
+          if errorlevel 1 exit /b 117
+          findstr /c:"products\fortigate\7.6\manifest-only.pdf" legacy-corpus-test\state\downloads.db >nul
+          if errorlevel 1 exit /b 118
+          cscript.exe //nologo scripts\corpus-layout.js migrate legacy-corpus-test > legacy-corpus-second.txt
+          if errorlevel 1 exit /b 119
+          findstr /c:"Files moved          : 0" legacy-corpus-second.txt >nul
+          if errorlevel 1 exit /b 120
+          mkdir legacy-corpus-test\temp\layout-v2-migration
+          cscript.exe //nologo scripts\corpus-layout.js migrate legacy-corpus-test > legacy-corpus-blocked.txt
+          if not errorlevel 1 exit /b 121
+          if not exist legacy-corpus-test\temp\layout-v2-migration exit /b 122
+
       - name: Native self-update hash-verifies same-version files and preserves runtime state
         shell: cmd
         run: |
@@ -307,7 +344,7 @@ jobs:
           set "DOCS_DOWNLOADER_UPDATE_URL=file:///%CD:\=/%/update-fixture.zip"
           call run.bat update
           if errorlevel 1 exit /b %errorlevel%
-          findstr /x /c:"0.0.15" VERSION >nul
+          findstr /x /c:"0.0.16" VERSION >nul
           if errorlevel 1 exit /b 76
           findstr /x /c:":hubs" solution-downloader.bat >nul
           if errorlevel 1 exit /b 77
@@ -319,5 +356,5 @@ jobs:
           set RC=%ERRORLEVEL%
           type post-update-doctor.txt
           if not "%RC%"=="0" exit /b %RC%
-          findstr /c:"v0.0.15" post-update-doctor.txt >nul
+          findstr /c:"v0.0.16" post-update-doctor.txt >nul
           if errorlevel 1 exit /b 85
