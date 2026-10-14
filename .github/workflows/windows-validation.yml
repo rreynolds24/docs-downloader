@@ -175,6 +175,7 @@ jobs:
           if errorlevel 1 exit /b 90
           findstr /c:"PDF targets resolved   : 0" ordering-inventory.txt >nul
           if not errorlevel 1 exit /b 91
+          exit /b 0
 
       - name: Live Solution Hub index discovery
         shell: cmd
