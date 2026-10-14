@@ -94,7 +94,10 @@
   ensureDir(downloads);
   ensureDir(state);
   ensureDir(work);
-  if (fso.FolderExists(txn)) fso.DeleteFolder(txn, true);
+  if (fso.FolderExists(txn)) {
+    WScript.Echo("[FAIL] Prior transaction directory remains; manual recovery required: " + txn);
+    WScript.Quit(7);
+  }
   ensureDir(txn);
 
   var rows = readLines(catalogue);
@@ -108,6 +111,29 @@
     var key = local.toLowerCase();
     var candidate = { row: fields, score: priority(fields), dest: destinationFor(fields, local) };
     if (!choices[key] || candidate.score > choices[key].score) choices[key] = candidate;
+  }
+
+
+  // Recover filename hints from historical acquisition rows.
+  var hints = {};
+  function hint(name, url) {
+    if (!name || isNested(name) || name === "-") return;
+    var match = String(url).match(/^https:\/\/docs\.fortinet\.com\/document\/([^\/]+)\/([^\/]+)\//i);
+    if (!match) return;
+    var key = name.toLowerCase();
+    var dst = "products\\" + safePart(match[1], "unknown") + "\\" + safePart(match[2], "unknown") + "\\" + name;
+    if (Object.prototype.hasOwnProperty.call(hints, key) && hints[key] !== dst) hints[key] = null;
+    else if (!Object.prototype.hasOwnProperty.call(hints, key)) hints[key] = dst;
+  }
+  var legacyManifest = readLines(manifest);
+  for (var k = 0; k < legacyManifest.length; k++) {
+    var mr = legacyManifest[k].split("|");
+    if (mr.length >= 5) hint(mr[4], mr[0]);
+  }
+  var legacySources = readLines(sources);
+  for (var s = 0; s < legacySources.length; s++) {
+    var sr = legacySources[s].split("|");
+    if (sr.length >= 7) hint(sr[6], sr[1]);
   }
 
   var mapping = {};
@@ -138,6 +164,27 @@
     mapping[key] = newRel;
     mappingCount++;
     if (src.toLowerCase() !== dst.toLowerCase()) planned.push({ oldRel: oldRel, newRel: newRel, src: src, dst: dst });
+  }
+
+
+  // Migrate every remaining root PDF even when it has no eligible catalogue row.
+  var rootFiles = new Enumerator(fso.GetFolder(downloads).Files);
+  var unclassified = 0;
+  for (; !rootFiles.atEnd(); rootFiles.moveNext()) {
+    var rootFile = rootFiles.item();
+    if (!/\.pdf$/i.test(rootFile.Name)) continue;
+    var rootKey = rootFile.Name.toLowerCase();
+    if (mapping[rootKey]) continue;
+    var dstRel = hints[rootKey] || ("unclassified\\" + rootFile.Name);
+    var dstPath = fso.BuildPath(downloads, dstRel);
+    if (fso.FileExists(dstPath)) {
+      WScript.Echo("[FAIL] Existing destination collision: " + dstRel);
+      WScript.Quit(5);
+    }
+    if (!hints[rootKey]) unclassified++;
+    mapping[rootKey] = dstRel;
+    mappingCount++;
+    planned.push({ oldRel: rootFile.Name, newRel: dstRel, src: rootFile.Path, dst: dstPath });
   }
 
   function rewrite(path, fieldIndex, tempName) {
@@ -191,7 +238,9 @@
     WScript.Echo("[PASS] Corpus layout migration complete.");
     WScript.Echo("       Files moved          : " + moved.length);
     WScript.Echo("       References updated   : " + mappingCount);
+    WScript.Echo("       Unclassified PDFs    : " + unclassified);
     WScript.Echo("       Download root        : " + downloads);
+    fso.DeleteFolder(txn, true);
     WScript.Quit(0);
   } catch (e) {
     WScript.Echo("[FAIL] Corpus layout migration failed: " + e.message);
