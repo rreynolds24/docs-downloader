@@ -52,6 +52,11 @@ if errorlevel 1 (
   echo [FAIL] robocopy.exe is required for update.
   exit /b 1
 )
+where cscript.exe >nul 2>&1
+if errorlevel 1 (
+  echo [FAIL] cscript.exe is required for corpus migration.
+  exit /b 1
+)
 
 if exist "%WORK%" rmdir /s /q "%WORK%" >nul 2>&1
 mkdir "%EXTRACT%" >nul 2>&1
@@ -84,7 +89,7 @@ if not defined SOURCE (
 )
 
 echo [INFO] Validating staged update package...
-for %%F in (run.bat docs-downloader.bat solution-downloader.bat kb-downloader.bat update.bat install.bat VERSION scripts\fortinet-parser.js) do (
+for %%F in (run.bat docs-downloader.bat solution-downloader.bat kb-downloader.bat update.bat install.bat VERSION scripts\fortinet-parser.js scripts\corpus-layout.js) do (
   if not exist "!SOURCE!\%%F" (
     echo [FAIL] Update package is missing required file: %%F
     exit /b 5
@@ -166,6 +171,12 @@ if errorlevel 1 (
   call :rollback
   exit /b 6
 )
+call :verify_same "!SOURCE!\scripts\corpus-layout.js" "%ROOT%\scripts\corpus-layout.js"
+if errorlevel 1 (
+  echo [FAIL] Installed scripts\corpus-layout.js does not match the staged update package.
+  call :rollback
+  exit /b 6
+)
 echo [PASS] Application files match staged update package
 
 if not exist "%ROOT%\run.bat" (
@@ -192,6 +203,14 @@ echo [INFO] Running updated installer/doctor...
 call "%ROOT%\install.bat"
 if errorlevel 1 (
   echo [FAIL] Updated files were applied, but install/doctor failed.
+  call :rollback
+  exit /b 9
+)
+
+echo [INFO] Migrating existing downloaded corpus into organized folders...
+cscript.exe //nologo "%ROOT%\scripts\corpus-layout.js" migrate "%ROOT%\runtime"
+if errorlevel 1 (
+  echo [FAIL] Existing runtime corpus could not be migrated safely.
   call :rollback
   exit /b 9
 )

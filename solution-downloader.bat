@@ -114,6 +114,7 @@ for /f "usebackq tokens=1,* delims=|" %%A in ("%RESOURCE_LIST%") do (
   if defined PDF_URL (
     set /a RESOLVED+=1
     for %%F in ("!PDF_URL:/=\!") do set "PDF_NAME=%%~nxF"
+    call :parse_identity "!RESOURCE_URL!" "!PDF_URL!" "!PDF_NAME!"
     call :get_remote_metadata "!PDF_URL!"
     call :lookup_duplicate_remote "!PDF_URL!" "!REMOTE_ETAG!" "!REMOTE_LENGTH!"
 
@@ -315,7 +316,19 @@ exit /b 0
 
 :choose_local_name
 set "CONTENT_ALREADY_LOCAL=0"
-set "LOCAL_NAME=%~1"
+set "TARGET_REL_DIR="
+if /i "%TARGET_URL%"=="https://docs.fortinet.com/ordering-guides" set "TARGET_REL_DIR=ordering-guides"
+if not defined TARGET_REL_DIR (
+  if /i "!PRODUCT_ID:~0,9!"=="solution-" (
+    set "SOLUTION_NAME=!PRODUCT_ID:~9!"
+    set "TARGET_REL_DIR=solution-hubs\!SOLUTION_NAME!\!SOURCE_VERSION!"
+  ) else (
+    set "TARGET_REL_DIR=products\!PRODUCT_ID!\!DOC_VERSION!"
+  )
+)
+if not exist "%DOWNLOAD_DIR%\!TARGET_REL_DIR!" mkdir "%DOWNLOAD_DIR%\!TARGET_REL_DIR!" >nul 2>&1
+if not exist "%DOWNLOAD_DIR%\!TARGET_REL_DIR!" exit /b 1
+set "LOCAL_NAME=!TARGET_REL_DIR!\%~1"
 if not exist "%DOWNLOAD_DIR%\!LOCAL_NAME!" exit /b 0
 call :compute_sha256 "%DOWNLOAD_DIR%\!LOCAL_NAME!"
 set "EXISTING_HASH=!FILE_HASH!"
@@ -328,7 +341,7 @@ for %%F in ("%~1") do (
   set "NAME_BASE=%%~nF"
   set "NAME_EXT=%%~xF"
 )
-set "LOCAL_NAME=!NAME_BASE!__!FILE_HASH:~0,12!!NAME_EXT!"
+set "LOCAL_NAME=!TARGET_REL_DIR!\!NAME_BASE!__!FILE_HASH:~0,12!!NAME_EXT!"
 exit /b 0
 
 :write_manifest

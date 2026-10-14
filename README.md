@@ -4,7 +4,7 @@ Portable Windows-native CLI for discovering and downloading PDF documentation fr
 
 ## Status
 
-**Current release: v0.0.9**
+**Current release: v0.0.15**
 
 The core workflow is validated end to end on both:
 
@@ -86,11 +86,16 @@ run.bat selftest
 
 ## Output
 
-Downloaded PDFs are written to:
+Downloaded PDFs are written beneath an organized corpus root:
 
 ```text
 runtime\downloads\
+  products\<product>\<version>\
+  solution-hubs\<solution>\<version>\
+  ordering-guides\
 ```
+
+The catalogue remains authoritative for SHA-256 content identity. If the same PDF is referenced by multiple sources, the existing physical file is reused rather than duplicated merely to populate another folder.
 
 For FortiPAM 7.0, the live validation resolved and downloaded:
 
@@ -177,7 +182,7 @@ Not yet implemented:
 - all-version traversal beyond what a product root already exposes
 - document-type filtering
 - removed-from-catalogue reporting
-- product/version-aware output folders
+- richer human-readable corpus manifests
 
 See `docs/ARCHITECTURE.md` and `docs/VALIDATION.md` for implementation and validation details.
 
@@ -304,4 +309,6 @@ Update the application from the current `main` branch:
 run.bat update
 ```
 
-The updater uses Windows-native `curl.exe`, `tar.exe`, and `robocopy.exe`. It stages itself under `runtime\temp`, downloads/extracts the GitHub ZIP, overlays application files, verifies the new version, and runs the updated installer. The entire `runtime\` tree is excluded from the overlay so PDFs, KB articles, and state databases survive upgrades.
+The updater uses Windows-native `curl.exe`, `tar.exe`, `robocopy.exe`, and `cscript.exe`. It stages itself under `runtime\temp`, downloads/extracts the GitHub ZIP, overlays application files, verifies the new version, and runs the updated installer. The entire `runtime\` tree is excluded from the overlay so PDFs, KB articles, and state databases survive upgrades.
+
+Starting with v0.0.15, the updater then runs a transactional corpus-layout migration. Existing flat PDFs are retained and moved into deterministic product/version, Solution Hub, or Ordering Guides folders, and `downloads.db`, `catalogue.db`, and `sources.db` are rewritten to the new relative paths. If the migration cannot complete safely, it rolls back the file moves/database rewrites and the update fails closed.

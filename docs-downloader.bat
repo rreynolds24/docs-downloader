@@ -2,7 +2,7 @@
 setlocal EnableExtensions EnableDelayedExpansion
 cd /d "%~dp0"
 
-set "APP_VERSION=0.0.14"
+set "APP_VERSION=0.0.15"
 set "BASE_URL=https://docs.fortinet.com"
 set "RUNTIME=%~dp0runtime"
 set "TEMP_DIR=%RUNTIME%\temp"
@@ -639,7 +639,10 @@ exit /b 0
 
 :choose_local_name
 set "CONTENT_ALREADY_LOCAL=0"
-set "LOCAL_NAME=%~1"
+set "TARGET_REL_DIR=products\!PRODUCT_ID!\!DOC_VERSION!"
+if not exist "%DOWNLOAD_DIR%\!TARGET_REL_DIR!" mkdir "%DOWNLOAD_DIR%\!TARGET_REL_DIR!" >nul 2>&1
+if not exist "%DOWNLOAD_DIR%\!TARGET_REL_DIR!" exit /b 1
+set "LOCAL_NAME=!TARGET_REL_DIR!\%~1"
 if not exist "%DOWNLOAD_DIR%\!LOCAL_NAME!" exit /b 0
 
 set "EXISTING_HASH="
@@ -656,7 +659,7 @@ for %%F in ("%~1") do (
   set "NAME_EXT=%%~xF"
 )
 set "HASH_SHORT=!FILE_HASH:~0,12!"
-set "LOCAL_NAME=!NAME_BASE!__!HASH_SHORT!!NAME_EXT!"
+set "LOCAL_NAME=!TARGET_REL_DIR!\!NAME_BASE!__!HASH_SHORT!!NAME_EXT!"
 if exist "%DOWNLOAD_DIR%\!LOCAL_NAME!" (
   set "EXISTING_HASH="
   call :compute_sha256 "%DOWNLOAD_DIR%\!LOCAL_NAME!"

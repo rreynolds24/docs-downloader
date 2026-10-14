@@ -88,11 +88,13 @@ jobs:
           type first-versioned.txt
           if not "%RC%"=="0" exit /b %RC%
           set PDF_COUNT=0
-          for %%F in (runtime\downloads\*.pdf) do (
+          for /r runtime\downloads %%F in (*.pdf) do (
             if %%~zF LEQ 0 exit /b 20
             set /a PDF_COUNT+=1
           )
           if not "%PDF_COUNT%"=="6" exit /b 21
+          if not exist runtime\downloads\products\fortipam\7.0.0 exit /b 97
+          if exist runtime\downloads\*.pdf exit /b 98
           findstr /c:"Downloaded/updated     : 6" first-versioned.txt >nul
           if errorlevel 1 exit /b 22
           findstr /c:"Duplicate content     : 0" first-versioned.txt >nul
@@ -160,6 +162,7 @@ jobs:
           if errorlevel 1 exit /b 88
           findstr /c:"evil.example" ordering-fixture.txt >nul
           if not errorlevel 1 exit /b 89
+          exit /b 0
 
       - name: Live ordering guides inventory
         shell: cmd
@@ -172,6 +175,7 @@ jobs:
           if errorlevel 1 exit /b 90
           findstr /c:"PDF targets resolved   : 0" ordering-inventory.txt >nul
           if not errorlevel 1 exit /b 91
+          exit /b 0
 
       - name: Live Solution Hub index discovery
         shell: cmd
@@ -289,16 +293,21 @@ jobs:
           copy /y install.bat update-fixture\docs-downloader-main\install.bat >nul
           copy /y VERSION update-fixture\docs-downloader-main\VERSION >nul
           copy /y scripts\fortinet-parser.js update-fixture\docs-downloader-main\scripts\fortinet-parser.js >nul
+          copy /y scripts\corpus-layout.js update-fixture\docs-downloader-main\scripts\corpus-layout.js >nul
           tar.exe -a -cf update-fixture.zip -C update-fixture docs-downloader-main
           if errorlevel 1 exit /b 75
           > runtime\preserve-me.txt echo persistent-state
+          > runtime\downloads\legacy-upgrade.pdf echo legacy-pdf-bytes
+          >> runtime\state\downloads.db echo https://docs.fortinet.com/document/fortipam/7.0/legacy^|https://example/legacy.pdf^|legacy-upgrade.pdf^|-^|legacy-upgrade.pdf
+          >> runtime\state\catalogue.db echo https://docs.fortinet.com/document/fortipam/7.0/legacy^|fortipam^|legacy^|7.0^|7.0^|https://example/legacy.pdf^|legacy-upgrade.pdf^|-^|-^|deadbeef^|first^|last^|legacy-upgrade.pdf^|CURRENT^|https://docs.fortinet.com/product/fortipam/7.0
+          >> runtime\state\sources.db echo https://docs.fortinet.com/sdwan/8.0^|https://docs.fortinet.com/document/fortipam/7.0/legacy^|https://example/legacy.pdf^|deadbeef^|first^|last^|legacy-upgrade.pdf
           > solution-downloader.bat echo @echo off
           >> solution-downloader.bat echo :doctor
           >> solution-downloader.bat echo exit /b 0
           set "DOCS_DOWNLOADER_UPDATE_URL=file:///%CD:\=/%/update-fixture.zip"
           call run.bat update
           if errorlevel 1 exit /b %errorlevel%
-          findstr /x /c:"0.0.14" VERSION >nul
+          findstr /x /c:"0.0.15" VERSION >nul
           if errorlevel 1 exit /b 76
           findstr /x /c:":hubs" solution-downloader.bat >nul
           if errorlevel 1 exit /b 77
@@ -310,5 +319,5 @@ jobs:
           set RC=%ERRORLEVEL%
           type post-update-doctor.txt
           if not "%RC%"=="0" exit /b %RC%
-          findstr /c:"v0.0.14" post-update-doctor.txt >nul
+          findstr /c:"v0.0.15" post-update-doctor.txt >nul
           if errorlevel 1 exit /b 85
