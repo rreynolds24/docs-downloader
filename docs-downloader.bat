@@ -636,10 +636,13 @@ set "NON_HEX_HASH="
 for /f "delims=0123456789abcdefABCDEF" %%X in ("!FILE_HASH!") do set "NON_HEX_HASH=%%X"
 if defined NON_HEX_HASH exit /b 1
 exit /b 0
-
+
 :choose_local_name
 set "CONTENT_ALREADY_LOCAL=0"
-set "LOCAL_NAME=%~1"
+set "TARGET_REL_DIR=products\!PRODUCT_ID!\!DOC_VERSION!"
+if not exist "%DOWNLOAD_DIR%\!TARGET_REL_DIR!" mkdir "%DOWNLOAD_DIR%\!TARGET_REL_DIR!" >nul 2>&1
+if not exist "%DOWNLOAD_DIR%\!TARGET_REL_DIR!" exit /b 1
+set "LOCAL_NAME=!TARGET_REL_DIR!\%~1"
 if not exist "%DOWNLOAD_DIR%\!LOCAL_NAME!" exit /b 0
 
 set "EXISTING_HASH="
@@ -656,7 +659,7 @@ for %%F in ("%~1") do (
   set "NAME_EXT=%%~xF"
 )
 set "HASH_SHORT=!FILE_HASH:~0,12!"
-set "LOCAL_NAME=!NAME_BASE!__!HASH_SHORT!!NAME_EXT!"
+set "LOCAL_NAME=!TARGET_REL_DIR!\!NAME_BASE!__!HASH_SHORT!!NAME_EXT!"
 if exist "%DOWNLOAD_DIR%\!LOCAL_NAME!" (
   set "EXISTING_HASH="
   call :compute_sha256 "%DOWNLOAD_DIR%\!LOCAL_NAME!"
