@@ -199,18 +199,18 @@ if /i not "!VERIFY_VERSION!"=="!NEW_VERSION!" (
   exit /b 8
 )
 
-echo [INFO] Migrating existing downloaded corpus into organized folders...
-cscript.exe //nologo "%ROOT%\scripts\corpus-layout.js" migrate "%ROOT%\runtime"
-if errorlevel 1 (
-  echo [FAIL] Existing runtime corpus could not be migrated safely.
-  call :rollback
-  exit /b 9
-)
-
 echo [INFO] Running updated installer/doctor...
 call "%ROOT%\install.bat"
 if errorlevel 1 (
   echo [FAIL] Updated files were applied, but install/doctor failed.
+  call :rollback
+  exit /b 9
+)
+
+echo [INFO] Migrating existing downloaded corpus into organized folders...
+cscript.exe //nologo "%ROOT%\scripts\corpus-layout.js" migrate "%ROOT%\runtime"
+if errorlevel 1 (
+  echo [FAIL] Existing runtime corpus could not be migrated safely.
   call :rollback
   exit /b 9
 )
