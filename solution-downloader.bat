@@ -313,7 +313,7 @@ set "NON_HEX_HASH="
 for /f "delims=0123456789abcdefABCDEF" %%X in ("!FILE_HASH!") do set "NON_HEX_HASH=%%X"
 if defined NON_HEX_HASH exit /b 1
 exit /b 0
-
+
 :choose_local_name
 set "CONTENT_ALREADY_LOCAL=0"
 set "TARGET_REL_DIR="
