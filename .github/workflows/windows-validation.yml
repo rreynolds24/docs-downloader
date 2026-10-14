@@ -315,6 +315,7 @@ jobs:
           cscript.exe //nologo scripts\corpus-layout.js migrate legacy-corpus-test > legacy-corpus-blocked.txt
           if not errorlevel 1 exit /b 121
           if not exist legacy-corpus-test\temp\layout-v2-migration exit /b 122
+          exit /b 0
 
       - name: Native self-update hash-verifies same-version files and preserves runtime state
         shell: cmd
