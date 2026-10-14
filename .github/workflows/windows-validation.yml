@@ -93,7 +93,7 @@ jobs:
             set /a PDF_COUNT+=1
           )
           if not "%PDF_COUNT%"=="6" exit /b 21
-          if not exist runtime\downloads\products\fortipam\7.0 exit /b 97
+          if not exist runtime\downloads\products\fortipam\7.0.0 exit /b 97
           if exist runtime\downloads\*.pdf exit /b 98
           findstr /c:"Downloaded/updated     : 6" first-versioned.txt >nul
           if errorlevel 1 exit /b 22
