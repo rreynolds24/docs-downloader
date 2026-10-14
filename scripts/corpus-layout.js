@@ -111,6 +111,7 @@
   }
 
   var mapping = {};
+  var mappingCount = 0;
   var planned = [];
   for (var key in choices) {
     if (!choices.hasOwnProperty(key)) continue;
@@ -122,6 +123,7 @@
     if (!fso.FileExists(src)) {
       if (fso.FileExists(dst)) {
         mapping[key] = newRel;
+        mappingCount++;
         continue;
       }
       WScript.Echo("[WARN] Catalogue file is not present locally; leaving reference unchanged: " + oldRel);
@@ -134,6 +136,7 @@
     }
 
     mapping[key] = newRel;
+    mappingCount++;
     if (src.toLowerCase() !== dst.toLowerCase()) planned.push({ oldRel: oldRel, newRel: newRel, src: src, dst: dst });
   }
 
@@ -182,12 +185,12 @@
     writeLines(fso.BuildPath(state, "corpus-layout-v2.ok"), [
       "layout=2",
       "moved=" + moved.length,
-      "updated_references=" + Object.keys(mapping).length
+      "updated_references=" + mappingCount
     ]);
 
     WScript.Echo("[PASS] Corpus layout migration complete.");
     WScript.Echo("       Files moved          : " + moved.length);
-    WScript.Echo("       References updated   : " + Object.keys(mapping).length);
+    WScript.Echo("       References updated   : " + mappingCount);
     WScript.Echo("       Download root        : " + downloads);
     WScript.Quit(0);
   } catch (e) {
