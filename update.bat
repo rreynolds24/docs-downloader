@@ -52,6 +52,11 @@ if errorlevel 1 (
   echo [FAIL] robocopy.exe is required for update.
   exit /b 1
 )
+where cscript.exe >nul 2>&1
+if errorlevel 1 (
+  echo [FAIL] cscript.exe is required for corpus migration.
+  exit /b 1
+)
 
 if exist "%WORK%" rmdir /s /q "%WORK%" >nul 2>&1
 mkdir "%EXTRACT%" >nul 2>&1
