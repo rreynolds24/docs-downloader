@@ -66,7 +66,7 @@ if errorlevel 1 (
 )
 
 echo [INFO] Downloading latest docs-downloader release source...
-curl.exe -L --fail --silent --show-error --connect-timeout 20 --max-time 180 "%UPDATE_URL%" -o "%ZIP%"
+curl.exe --ssl-revoke-best-effort -L --fail --silent --show-error --connect-timeout 20 --max-time 180 "%UPDATE_URL%" -o "%ZIP%"
 if errorlevel 1 (
   echo [FAIL] Could not download update package.
   exit /b 3
