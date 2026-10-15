@@ -60,7 +60,7 @@ if errorlevel 1 exit /b 1
 set "RUN_SEEN=%DATE%T%TIME%"
 
 echo [INFO] Fetching Solution Hub page...
-curl.exe -L --fail --silent --show-error --connect-timeout 20 --max-time 120 "%TARGET_URL%" -o "%PAGE_HTML%"
+curl.exe --ssl-revoke-best-effort -L --fail --silent --show-error --connect-timeout 20 --max-time 120 "%TARGET_URL%" -o "%PAGE_HTML%"
 if errorlevel 1 (
   echo [FAIL] Could not retrieve Solution Hub page.
   exit /b 3
@@ -94,7 +94,7 @@ for /f "usebackq tokens=1,* delims=|" %%A in ("%RESOURCE_LIST%") do (
   echo [INFO] !TOTAL!: !RESOURCE_URL!
 
   if /i "!RESOURCE_TYPE!"=="DOC" (
-    curl.exe -L --fail --silent --show-error --connect-timeout 20 --max-time 120 "!RESOURCE_URL!" -o "%DOC_HTML%"
+    curl.exe --ssl-revoke-best-effort -L --fail --silent --show-error --connect-timeout 20 --max-time 120 "!RESOURCE_URL!" -o "%DOC_HTML%"
     if errorlevel 1 (
       echo [WARN] Could not retrieve curated document page.
       set /a FAILED+=1
@@ -132,7 +132,7 @@ for /f "usebackq tokens=1,* delims=|" %%A in ("%RESOURCE_LIST%") do (
 
       if /i "!MODE!"=="download" (
         if exist "%DOWNLOAD_TMP%" del /q "%DOWNLOAD_TMP%" >nul 2>&1
-        curl.exe -L --fail --show-error --progress-bar --connect-timeout 20 --max-time 1800 "!PDF_URL!" -o "%DOWNLOAD_TMP%"
+        curl.exe --ssl-revoke-best-effort -L --fail --show-error --progress-bar --connect-timeout 20 --max-time 1800 "!PDF_URL!" -o "%DOWNLOAD_TMP%"
         if errorlevel 1 (
           echo [WARN] Download failed.
           set /a FAILED+=1
@@ -209,7 +209,7 @@ exit /b 0
 call :doctor
 if errorlevel 1 exit /b 1
 set "TARGET_URL=https://docs.fortinet.com/solution-hubs"
-curl.exe -L --fail --silent --show-error "%TARGET_URL%" -o "%PAGE_HTML%"
+curl.exe --ssl-revoke-best-effort -L --fail --silent --show-error "%TARGET_URL%" -o "%PAGE_HTML%"
 if errorlevel 1 exit /b 3
 cscript.exe //nologo "%PARSER%" hubs "%PAGE_HTML%" "%RESOURCE_LIST%"
 if errorlevel 1 (
@@ -244,7 +244,7 @@ exit /b 0
 :get_remote_metadata
 set "REMOTE_ETAG=-"
 set "REMOTE_LENGTH=-"
-curl.exe -L --fail --silent --show-error --head --connect-timeout 20 --max-time 120 "%~1" -o "%HEADER_FILE%" >nul 2>&1
+curl.exe --ssl-revoke-best-effort -L --fail --silent --show-error --head --connect-timeout 20 --max-time 120 "%~1" -o "%HEADER_FILE%" >nul 2>&1
 if errorlevel 1 exit /b 0
 for /f "tokens=1,* delims=:" %%A in ('findstr /i /b /c:"ETag:" "%HEADER_FILE%"') do set "REMOTE_ETAG=%%B"
 for /f "tokens=1,* delims=:" %%A in ('findstr /i /b /c:"Content-Length:" "%HEADER_FILE%"') do set "REMOTE_LENGTH=%%B"
