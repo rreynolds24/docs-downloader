@@ -317,6 +317,18 @@ jobs:
           if not exist legacy-corpus-test\temp\layout-v2-migration exit /b 122
           exit /b 0
 
+      - name: Metadata-only documentation index offline status and reconciliation
+        shell: cmd
+        run: |
+          call run.bat docs status > docs-index-status.txt
+          if errorlevel 1 exit /b 131
+          findstr /c:"Indexed documents : 0" docs-index-status.txt >nul
+          if errorlevel 1 exit /b 132
+          call run.bat docs reconcile --preview > docs-index-preview.txt
+          if errorlevel 1 exit /b 133
+          findstr /c:"No files moved." docs-index-preview.txt >nul
+          if errorlevel 1 exit /b 134
+
       - name: Native self-update hash-verifies same-version files and preserves runtime state
         shell: cmd
         run: |
@@ -332,6 +344,7 @@ jobs:
           copy /y VERSION update-fixture\docs-downloader-main\VERSION >nul
           copy /y scripts\fortinet-parser.js update-fixture\docs-downloader-main\scripts\fortinet-parser.js >nul
           copy /y scripts\corpus-layout.js update-fixture\docs-downloader-main\scripts\corpus-layout.js >nul
+          copy /y scripts\docs-index.js update-fixture\docs-downloader-main\scripts\docs-index.js >nul
           tar.exe -a -cf update-fixture.zip -C update-fixture docs-downloader-main
           if errorlevel 1 exit /b 75
           > runtime\preserve-me.txt echo persistent-state
@@ -345,7 +358,7 @@ jobs:
           set "DOCS_DOWNLOADER_UPDATE_URL=file:///%CD:\=/%/update-fixture.zip"
           call run.bat update
           if errorlevel 1 exit /b %errorlevel%
-          findstr /x /c:"0.0.16" VERSION >nul
+          findstr /x /c:"0.0.17" VERSION >nul
           if errorlevel 1 exit /b 76
           findstr /x /c:":hubs" solution-downloader.bat >nul
           if errorlevel 1 exit /b 77
@@ -357,5 +370,5 @@ jobs:
           set RC=%ERRORLEVEL%
           type post-update-doctor.txt
           if not "%RC%"=="0" exit /b %RC%
-          findstr /c:"v0.0.16" post-update-doctor.txt >nul
+          findstr /c:"v0.0.17" post-update-doctor.txt >nul
           if errorlevel 1 exit /b 85
