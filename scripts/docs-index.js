@@ -16,7 +16,7 @@
   function pdfLink(html){var m,re=/<a\b[^>]*>/ig;while((m=re.exec(html))!==null){if(!/\bid\s*=\s*["']reader-pdf["']/i.test(m[0]))continue;var h=m[0].match(/\bhref\s*=\s*["']([^"']+)["']/i);if(h&&/^https:\/\//i.test(h[1]))return h[1].replace(/&amp;/g,"&");}return "";}
   function fetch(url){if(!/^https:\/\/docs\.fortinet\.com\/(?:product(?:\/|$)|document\/)/i.test(url))throw Error("Unapproved URL: "+url);
     mkdir(temp);var out=fso.BuildPath(temp,"docs-index-page.html");
-    var cmd='cmd.exe /d /c curl.exe -L --fail --silent --show-error --connect-timeout 15 --max-time 60 --proto "=https" --proto-redir "=https" "'+url+'" -o "'+out+'"';
+    var cmd='cmd.exe /d /c curl.exe --ssl-revoke-best-effort -L --fail --silent --show-error --connect-timeout 15 --max-time 60 --proto "=https" --proto-redir "=https" "'+url+'" -o "'+out+'"';
     var rc=shell.Run(cmd,0,true);if(rc!==0)throw Error("HTTPS request failed: "+url+" ("+rc+")");
     return read(out);
   }
