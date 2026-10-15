@@ -61,7 +61,7 @@ exit /b 0
 call :doctor
 if errorlevel 1 exit /b 1
 echo [INFO] Fetching Fortinet Knowledge Base categories...
-curl.exe -L --fail --silent --show-error --connect-timeout 20 --max-time 120 "%COMMUNITY%/knowledge-base" -o "%ROOT_HTML%"
+curl.exe --ssl-revoke-best-effort -L --fail --silent --show-error --connect-timeout 20 --max-time 120 "%COMMUNITY%/knowledge-base" -o "%ROOT_HTML%"
 if errorlevel 1 (
   echo [FAIL] Could not retrieve the Fortinet Knowledge Base.
   exit /b 3
@@ -101,7 +101,7 @@ set "CATEGORY_DIR=%KB_ARTICLES%\%CATEGORY_SLUG%"
 if not exist "%CATEGORY_DIR%" mkdir "%CATEGORY_DIR%" >nul 2>&1
 
 echo [INFO] Discovering Knowledge Base article URLs from Fortinet topic sitemaps...
-curl.exe -L --fail --silent --show-error --connect-timeout 20 --max-time 120 "%COMMUNITY%/sitemap.xml" -o "%INDEX_XML%"
+curl.exe --ssl-revoke-best-effort -L --fail --silent --show-error --connect-timeout 20 --max-time 120 "%COMMUNITY%/sitemap.xml" -o "%INDEX_XML%"
 if errorlevel 1 (
   echo [FAIL] Could not retrieve Community sitemap index.
   exit /b 3
@@ -117,7 +117,7 @@ set /a SITEMAP_COUNT=0
 for /f "usebackq delims=" %%S in ("%SITEMAP_LIST%") do (
   set /a SITEMAP_COUNT+=1
   echo [INFO] Reading sitemap !SITEMAP_COUNT!: %%S
-  curl.exe -L --fail --silent --show-error --connect-timeout 20 --max-time 180 "%%S" -o "%SITEMAP_XML%"
+  curl.exe --ssl-revoke-best-effort -L --fail --silent --show-error --connect-timeout 20 --max-time 180 "%%S" -o "%SITEMAP_XML%"
   if errorlevel 1 (
     echo [FAIL] Could not retrieve topic sitemap.
     exit /b 5
@@ -202,7 +202,7 @@ if /i "%ACTION%"=="check" (
 if /i "!ARTICLE_STATUS!"=="UNCHANGED" exit /b 0
 
 echo [!ARTICLE_STATUS!] !ARTICLE_URL!
-curl.exe -L --fail --silent --show-error --connect-timeout 20 --max-time 180 "!ARTICLE_URL!" -o "%ARTICLE_TMP%"
+curl.exe --ssl-revoke-best-effort -L --fail --silent --show-error --connect-timeout 20 --max-time 180 "!ARTICLE_URL!" -o "%ARTICLE_TMP%"
 if errorlevel 1 (
   echo [WARN] Failed to retrieve KB article.
   set /a FAILED+=1
