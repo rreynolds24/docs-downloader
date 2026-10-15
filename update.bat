@@ -89,7 +89,7 @@ if not defined SOURCE (
 )
 
 echo [INFO] Validating staged update package...
-for %%F in (run.bat docs-downloader.bat solution-downloader.bat kb-downloader.bat update.bat install.bat VERSION scripts\fortinet-parser.js scripts\corpus-layout.js) do (
+for %%F in (run.bat docs-downloader.bat solution-downloader.bat kb-downloader.bat update.bat install.bat VERSION scripts\fortinet-parser.js scripts\corpus-layout.js scripts\docs-index.js) do (
   if not exist "!SOURCE!\%%F" (
     echo [FAIL] Update package is missing required file: %%F
     exit /b 5
@@ -168,6 +168,12 @@ for %%F in (run.bat docs-downloader.bat solution-downloader.bat kb-downloader.ba
 call :verify_same "!SOURCE!\scripts\fortinet-parser.js" "%ROOT%\scripts\fortinet-parser.js"
 if errorlevel 1 (
   echo [FAIL] Installed scripts\fortinet-parser.js does not match the staged update package.
+  call :rollback
+  exit /b 6
+)
+call :verify_same "!SOURCE!\scripts\docs-index.js" "%ROOT%\scripts\docs-index.js"
+if errorlevel 1 (
+  echo [FAIL] Installed documentation indexer mismatches staged package.
   call :rollback
   exit /b 6
 )

@@ -56,7 +56,7 @@ echo [PASS] robocopy.exe
 
 echo [INFO] Verifying application file integrity...
 
-for %%F in (run.bat docs-downloader.bat solution-downloader.bat kb-downloader.bat update.bat scripts\fortinet-parser.js scripts\corpus-layout.js VERSION) do (
+for %%F in (run.bat docs-downloader.bat solution-downloader.bat kb-downloader.bat update.bat scripts\fortinet-parser.js scripts\corpus-layout.js scripts\docs-index.js VERSION) do (
   if not exist "%%F" (
     echo [FAIL] Required application file is missing: %%F
     exit /b 1
