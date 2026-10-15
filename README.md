@@ -312,3 +312,9 @@ run.bat update
 The updater uses Windows-native `curl.exe`, `tar.exe`, `robocopy.exe`, and `cscript.exe`. It stages itself under `runtime\temp`, downloads/extracts the GitHub ZIP, overlays application files, verifies the new version, and runs the updated installer. The entire `runtime\` tree is excluded from the overlay so PDFs, KB articles, and state databases survive upgrades.
 
 Starting with v0.0.15, the updater then runs a transactional corpus-layout migration. Existing flat PDFs are retained and moved into deterministic product/version, Solution Hub, or Ordering Guides folders, and `downloads.db`, `catalogue.db`, and `sources.db` are rewritten to the new relative paths. If the migration cannot complete safely, it rolls back the file moves/database rewrites and the update fails closed.
+
+## Metadata-only documentation indexing (v0.0.17)
+
+`run.bat docs products` discovers products from the Fortinet documentation catalogue. `run.bat docs index [product]` visits HTML document pages, reads `reader-pdf` links, and records metadata into `runtime\state\docs-index.db` without downloading PDF bodies. `run.bat docs check [product]` performs read-only comparison, `run.bat docs status` reports index size, and `run.bat docs reconcile --preview` lists unique filename-based candidate matches for already downloaded `runtime\downloads\unclassified` PDFs without moving them. Remote filename matches are **not** verified SHA-256 matches and are never applied automatically.
+
+The indexer requires HTTPS connectivity for discovery only; the existing offline install/doctor remain offline-compatible. Product discovery reflects URLs exposed by the website and may not be exhaustive. Indexing may take time; run scoped product indexing for targeted scans.
