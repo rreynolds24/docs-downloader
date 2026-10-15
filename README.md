@@ -318,3 +318,9 @@ Starting with v0.0.15, the updater then runs a transactional corpus-layout migra
 `run.bat docs products` discovers products from the Fortinet documentation catalogue. `run.bat docs index [product]` visits HTML document pages, reads `reader-pdf` links, and records metadata into `runtime\state\docs-index.db` without downloading PDF bodies. `run.bat docs check [product]` performs read-only comparison, `run.bat docs status` reports index size, and `run.bat docs reconcile --preview` lists unique filename-based candidate matches for already downloaded `runtime\downloads\unclassified` PDFs without moving them. Remote filename matches are **not** verified SHA-256 matches and are never applied automatically.
 
 The indexer requires HTTPS connectivity for discovery only; the existing offline install/doctor remain offline-compatible. Product discovery reflects URLs exposed by the website and may not be exhaustive. Indexing may take time; run scoped product indexing for targeted scans.
+
+## Windows SSL-inspection / Schannel revocation availability (v0.0.18)
+
+All application `curl.exe` requests use `--ssl-revoke-best-effort`. On Windows Schannel, this permits TLS connections if the revocation distribution point is unavailable (for example, behind enterprise SSL inspection) without turning off certificate trust-chain and hostname validation. Known revoked certificates and other TLS validation failures are still rejected. This is **not** `-k`/`--insecure`; administrators must provision a trusted enterprise root for intercepted HTTPS certificates.
+
+If an existing v0.0.17 updater cannot retrieve GitHub due to the same Schannel problem, retrieve the `main.zip` archive using an approved browser, extract it separately, and follow the documented safe ZIP overlay process while preserving `runtime`; avoid deleting or overwriting local state. The updated updater itself supports Schannel revocation best-effort once installed.
