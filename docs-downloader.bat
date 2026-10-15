@@ -117,7 +117,7 @@ call :banner
 echo.
 if /i "%MODE%"=="check" echo [INFO] Checking live catalogue for new or changed versions...
 if /i not "%MODE%"=="check" echo [INFO] Fetching product page...
-curl.exe -L --fail --silent --show-error --connect-timeout 20 --max-time 120 "%TARGET_URL%" -o "%PRODUCT_HTML%"
+curl.exe --ssl-revoke-best-effort -L --fail --silent --show-error --connect-timeout 20 --max-time 120 "%TARGET_URL%" -o "%PRODUCT_HTML%"
 if errorlevel 1 (
   echo [FAIL] Could not retrieve the Fortinet product page.
   exit /b 3
@@ -168,7 +168,7 @@ for /f "usebackq delims=" %%D in ("%DOC_LIST%") do (
 
   echo.
   echo [INFO] !TOTAL!: !DOC_SLUG!
-  curl.exe -L --fail --silent --show-error --connect-timeout 20 --max-time 120 "!DOC_URL!" -o "%DOC_HTML%"
+  curl.exe --ssl-revoke-best-effort -L --fail --silent --show-error --connect-timeout 20 --max-time 120 "!DOC_URL!" -o "%DOC_HTML%"
   if errorlevel 1 (
     echo [WARN] Could not retrieve document page: !DOC_URL!
     set /a FAILED+=1
@@ -232,7 +232,7 @@ for /f "usebackq delims=" %%D in ("%DOC_LIST%") do (
           ) else (
             if exist "%DOWNLOAD_TMP%" del /q "%DOWNLOAD_TMP%" >nul 2>&1
             echo [INFO] Downloading candidate content...
-            curl.exe -L --fail --show-error --progress-bar --connect-timeout 20 --max-time 1800 "!PDF_URL!" -o "%DOWNLOAD_TMP%"
+            curl.exe --ssl-revoke-best-effort -L --fail --show-error --progress-bar --connect-timeout 20 --max-time 1800 "!PDF_URL!" -o "%DOWNLOAD_TMP%"
             if errorlevel 1 (
               echo [WARN] Download failed: !PDF_NAME!
               set /a FAILED+=1
@@ -358,7 +358,7 @@ exit /b 0
 :get_remote_metadata
 set "REMOTE_ETAG=-"
 set "REMOTE_LENGTH=-"
-curl.exe -L --fail --silent --show-error --head --connect-timeout 20 --max-time 120 "%~1" -o "%HEADER_FILE%" >nul 2>&1
+curl.exe --ssl-revoke-best-effort -L --fail --silent --show-error --head --connect-timeout 20 --max-time 120 "%~1" -o "%HEADER_FILE%" >nul 2>&1
 if errorlevel 1 exit /b 0
 
 for /f "tokens=1,* delims=:" %%A in ('findstr /i /b /c:"ETag:" "%HEADER_FILE%"') do set "REMOTE_ETAG=%%B"
