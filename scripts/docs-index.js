@@ -37,8 +37,8 @@
     var ps=scope? [scope.replace(/^https:\/\/docs\.fortinet\.com\/product\//,"").split("/")[0]]:products();
     if(mode==="products"){for(var i=0;i<ps.length;i++)WScript.Echo(ps[i]);WScript.Echo("Products discovered: "+ps.length);WScript.Quit(0);}
     var map=load(),added=0,updated=0,fail=0,visited=0;
-    for(var i=0;i<ps.length;i++){var p=ps[i];if(!/^[a-z0-9][a-z0-9-]*$/i.test(p)){WScript.Echo("[WARN] Unsafe product token: "+p);fail++;continue;}
-      try{var docUrls=matchLinks(fetch("https://docs.fortinet.com/product/"+p),"/document/");
+    for(var i=0;i<ps.length;i++){var p=ps[i], docUrls=[];if(!/^[a-z0-9][a-z0-9-]*$/i.test(p)){WScript.Echo("[WARN] Unsafe product token: "+p);fail++;continue;}
+      try{docUrls=matchLinks(fetch("https://docs.fortinet.com/product/"+p),"/document/");
         for(var j=0;j<docUrls.length;j++){var url=docUrls[j];try{var r=fields(url,fetch(url));if(!r)continue;visited++;if(!map[url])added++;else if(map[url].slice(1,6).join("|")!==r.slice(1,6).join("|"))updated++;map[url]=r;}catch(ex){fail++;WScript.Echo("[WARN] "+clean(String(ex.message)));}}
       }catch(e){fail++;WScript.Echo("[WARN] "+clean(String(e.message)));}
       if(mode==="index")save(map);
