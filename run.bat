@@ -12,6 +12,15 @@ if /i "%~1"=="update" (
   exit /b %errorlevel%
 )
 
+if /i "%~1"=="docs" (
+  if not exist "%~dp0scripts\docs-index.js" (
+    echo [FAIL] Missing documentation indexer.
+    exit /b 1
+  )
+  cscript.exe //nologo "%~dp0scripts\docs-index.js" "%~2" "%~dp0runtime" "%~3"
+  exit /b %errorlevel%
+)
+
 if /i "%~1"=="ordering-guides" (
   set "ORDERING_MODE=ordering-guides"
   if /i "%~2"=="check" set "ORDERING_MODE=ordering-check"
