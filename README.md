@@ -324,3 +324,13 @@ The indexer requires HTTPS connectivity for discovery only; the existing offline
 All application `curl.exe` requests use `--ssl-revoke-best-effort`. On Windows Schannel, this permits TLS connections if the revocation distribution point is unavailable (for example, behind enterprise SSL inspection) without turning off certificate trust-chain and hostname validation. Known revoked certificates and other TLS validation failures are still rejected. This is **not** `-k`/`--insecure`; administrators must provision a trusted enterprise root for intercepted HTTPS certificates.
 
 If an existing v0.0.17 updater cannot retrieve GitHub due to the same Schannel problem, retrieve the `main.zip` archive using an approved browser, extract it separately, and follow the documented safe ZIP overlay process while preserving `runtime`; avoid deleting or overwriting local state. The updated updater itself supports Schannel revocation best-effort once installed.
+
+## FortiMail Workspace Security HTML documentation (v0.0.19)
+
+```bat
+run.bat inventory https://docs.fortinet.com/product/fortimail-workspace-security
+run.bat check https://docs.fortinet.com/product/fortimail-workspace-security
+run.bat download https://docs.fortinet.com/product/fortimail-workspace-security
+```
+
+This product links to a public legacy Perception Point documentation portal. An explicit adapter inventories HTML topics from the vendor’s `/fortinet/Sitemap.xml`. It does not try to infer generic external download sites. Inventory does not fetch the individual topics; check fetches topics for byte comparison without changing the archive. Download preserves the original HTML bytes under `runtime\downloads\products\fortimail-workspace-security\web\<topic-path>\<sha256>.htm.txt`; the text extension prevents accidentally launching vendor scripts. Identical snapshots of a topic are reused, and changed snapshots are retained alongside previous ones. This is an HTML source archive, not a live offline replica: site images, scripts, standalone attachments and login-gated content are not downloaded. Redirects during vendor acquisition are not followed. The existing native Fortinet PDF index and PDF/KB catalogues are not changed. `run.bat update` from 0.0.18 preserves the runtime tree.
