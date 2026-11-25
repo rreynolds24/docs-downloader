@@ -9,7 +9,7 @@ if /i "%~1"=="update" (
     exit /b 1
   )
   call "%~dp0update.bat"
-  exit /b %errorlevel%
+  exit /b !errorlevel!
 )
 
 if /i "%~1"=="docs" (
