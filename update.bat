@@ -89,7 +89,7 @@ if not defined SOURCE (
 )
 
 echo [INFO] Validating staged update package...
-for %%F in (run.bat docs-downloader.bat solution-downloader.bat kb-downloader.bat update.bat install.bat VERSION scripts\fortinet-parser.js scripts\corpus-layout.js scripts\docs-index.js scripts\workspace-security.js) do (
+for %%F in (run.bat docs-downloader.bat solution-downloader.bat kb-downloader.bat update.bat install.bat VERSION scripts\fortinet-parser.js scripts\corpus-layout.js scripts\docs-index.js) do (
   if not exist "!SOURCE!\%%F" (
     echo [FAIL] Update package is missing required file: %%F
     exit /b 5
@@ -180,12 +180,6 @@ if errorlevel 1 (
 call :verify_same "!SOURCE!\scripts\corpus-layout.js" "%ROOT%\scripts\corpus-layout.js"
 if errorlevel 1 (
   echo [FAIL] Installed scripts\corpus-layout.js does not match the staged update package.
-  call :rollback
-  exit /b 6
-)
-call :verify_same "!SOURCE!\scripts\workspace-security.js" "%ROOT%\scripts\workspace-security.js"
-if errorlevel 1 (
-  echo [FAIL] Installed Workspace Security adapter mismatches staged package.
   call :rollback
   exit /b 6
 )

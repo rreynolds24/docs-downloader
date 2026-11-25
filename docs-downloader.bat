@@ -2,7 +2,7 @@
 setlocal EnableExtensions EnableDelayedExpansion
 cd /d "%~dp0"
 
-set "APP_VERSION=0.0.19"
+set "APP_VERSION=0.0.20"
 set "BASE_URL=https://docs.fortinet.com"
 set "RUNTIME=%~dp0runtime"
 set "TEMP_DIR=%RUNTIME%\temp"
@@ -54,7 +54,7 @@ if not "%~1"=="" (
 cls
 call :banner
 echo.
-echo   1. Download/synchronize product or solution docs
+echo   1. Download/synchronize product or solution PDFs
 echo   2. Inventory product or solution resources
 echo   3. Check for new or changed document versions
 echo   4. Doctor / environment check
@@ -91,10 +91,6 @@ if not defined TARGET_URL (
   exit /b 2
 )
 
-rem Explicit product mapping: Fortinet publishes an external guide link, not a PDF inventory.
-if /i "%TARGET_URL%"=="https://docs.fortinet.com/product/fortimail-workspace-security" goto :workspace_security
-if /i "%TARGET_URL%"=="https://docs.fortinet.com/product/fortimail-workspace-security/" goto :workspace_security
-if /i "%TARGET_URL%"=="https://docs.perception-point.io/fortinet/Content/PP/Home.htm" goto :workspace_security
 set "DOCS_PREFIX=%TARGET_URL:~0,26%"
 if /i not "%DOCS_PREFIX%"=="https://docs.fortinet.com/" (
   echo [FAIL] Documentation URL must begin with:
@@ -798,18 +794,8 @@ for /f usebackq^ tokens^=6^ delims^=^" %%A in ("%PDF_MATCHES%") do (
 if not defined PDF_URL exit /b 1
 exit /b 0
 
-:workspace_security
-call :doctor_quiet
-if errorlevel 1 exit /b 1
-call :banner
-echo [INFO] FortiMail Workspace Security: public vendor HTML documentation.
-cscript.exe //nologo "%~dp0scripts\workspace-security.js" "%MODE%" "%RUNTIME%"
-exit /b %errorlevel%
-
 :selftest
 call :banner
-cscript.exe //nologo "%~dp0scripts\workspace-security.js" selftest "%RUNTIME%"
-if errorlevel 1 exit /b 31
 echo.
 echo [INFO] Running parser, tracking, version, and catalogue self-tests under cmd.exe...
 
