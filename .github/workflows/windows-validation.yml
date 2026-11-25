@@ -43,6 +43,56 @@ jobs:
           if errorlevel 1 exit /b 84
           popd
 
+      - name: Restore legacy path by upgrading the released 0.0.19 ZIP
+        shell: cmd
+        run: |
+          if exist scripts\workspace-security.js (
+            findstr /x /c:"// Inert compatibility marker for the 0.0.19 updater; no runtime entrypoint uses it." scripts\workspace-security.js >nul
+            if errorlevel 1 exit /b 149
+          ) else (
+            exit /b 149
+          )
+          findstr /i /m /c:"workspace-security.js" *.bat >nul
+          if not errorlevel 1 exit /b 150
+          set "NEW_ZIP=%CD%\github-archive.zip"
+          curl.exe -L --fail --silent --show-error "https://github.com/${{ github.repository }}/archive/0d9c4f9ce3c7b7d26901820d71560b85b4aefd39.zip" -o old-release.zip
+          if errorlevel 1 exit /b 151
+          mkdir "Prior Release"
+          tar.exe -xf old-release.zip -C "Prior Release"
+          if errorlevel 1 exit /b 152
+          pushd "Prior Release\docs-downloader-0d9c4f9ce3c7b7d26901820d71560b85b4aefd39"
+          call install.bat
+          if errorlevel 1 exit /b 153
+          findstr /x /c:"0.0.19" VERSION >nul
+          if errorlevel 1 exit /b 154
+          mkdir runtime\downloads\products\fortipam\7.0
+          > runtime\downloads\products\fortipam\7.0\recovery-test.pdf echo Recovery fixture, keep bytes unchanged.
+          > runtime\state\recovery-test.txt echo Unowned state must not be changed.
+          copy /y runtime\downloads\products\fortipam\7.0\recovery-test.pdf expected-pdf.bin >nul
+          copy /y runtime\state\recovery-test.txt expected-state.bin >nul
+          for %%F in (downloads.db catalogue.db sources.db) do (
+            if not exist "runtime\state\%%F" type nul > "runtime\state\%%F"
+            copy /y "runtime\state\%%F" "expected-%%F" >nul
+          )
+          set "DOCS_DOWNLOADER_UPDATE_URL=file:///%NEW_ZIP:\=/%"
+          call run.bat update > upgrade-recovery.txt
+          set "RC=%ERRORLEVEL%"
+          type upgrade-recovery.txt
+          if not "%RC%"=="0" exit /b %RC%
+          findstr /x /c:"0.0.20" VERSION >nul
+          if errorlevel 1 exit /b 155
+          fc /b expected-pdf.bin runtime\downloads\products\fortipam\7.0\recovery-test.pdf >nul
+          if errorlevel 1 exit /b 156
+          fc /b expected-state.bin runtime\state\recovery-test.txt >nul
+          if errorlevel 1 exit /b 157
+          for %%F in (downloads.db catalogue.db sources.db) do (
+            fc /b "expected-%%F" "runtime\state\%%F" >nul
+            if errorlevel 1 exit /b 158
+          )
+          call run.bat selftest
+          if errorlevel 1 exit /b 159
+          popd
+
       - name: Install and doctor
         shell: cmd
         run: |
@@ -73,16 +123,6 @@ jobs:
         run: |
           call run.bat selftest
           if errorlevel 1 exit /b %errorlevel%
-
-      - name: Live FortiMail Workspace Security HTML inventory
-        shell: cmd
-        run: |
-          call run.bat inventory https://docs.fortinet.com/product/fortimail-workspace-security > workspace-security.txt
-          if errorlevel 1 exit /b 145
-          findstr /i /c:"/fortinet/Content/PP/Getting-started.htm" workspace-security.txt >nul
-          if errorlevel 1 exit /b 146
-          findstr /c:"HTML topics discovered :" workspace-security.txt >nul
-          if errorlevel 1 exit /b 147
 
       - name: Live FortiPAM 7.0 inventory
         shell: cmd
@@ -405,7 +445,7 @@ jobs:
           set "DOCS_DOWNLOADER_UPDATE_URL=file:///%CD:\=/%/update-fixture.zip"
           call run.bat update
           if errorlevel 1 exit /b %errorlevel%
-          findstr /x /c:"0.0.19" VERSION >nul
+          findstr /x /c:"0.0.20" VERSION >nul
           if errorlevel 1 exit /b 76
           findstr /x /c:":hubs" solution-downloader.bat >nul
           if errorlevel 1 exit /b 77
@@ -417,5 +457,5 @@ jobs:
           set RC=%ERRORLEVEL%
           type post-update-doctor.txt
           if not "%RC%"=="0" exit /b %RC%
-          findstr /c:"v0.0.19" post-update-doctor.txt >nul
+          findstr /c:"v0.0.20" post-update-doctor.txt >nul
           if errorlevel 1 exit /b 85
