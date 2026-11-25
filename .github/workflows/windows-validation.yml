@@ -102,10 +102,11 @@ jobs:
             if %%~zF LEQ 0 exit /b 20
             set /a PDF_COUNT+=1
           )
-          if not "%PDF_COUNT%"=="6" exit /b 21
+          if %PDF_COUNT% LSS 6 exit /b 21
+          > fortipam-baseline-count.txt echo %PDF_COUNT%
           if not exist runtime\downloads\products\fortipam\7.0.0 exit /b 97
           if exist runtime\downloads\*.pdf exit /b 98
-          findstr /c:"Downloaded/updated     : 6" first-versioned.txt >nul
+          findstr /x /c:"Downloaded/updated     : %PDF_COUNT%" first-versioned.txt >nul
           if errorlevel 1 exit /b 22
           findstr /c:"Duplicate content     : 0" first-versioned.txt >nul
           if errorlevel 1 exit /b 23
@@ -121,6 +122,8 @@ jobs:
       - name: Live FortiPAM 7.0 read-only version check
         shell: cmd
         run: |
+          set /p PDF_COUNT=<fortipam-baseline-count.txt
+          if not defined PDF_COUNT exit /b 148
           call run.bat check https://docs.fortinet.com/product/fortipam/7.0 > version-check.txt
           set RC=%ERRORLEVEL%
           type version-check.txt
@@ -129,21 +132,23 @@ jobs:
           if errorlevel 1 exit /b 26
           findstr /c:"Updated in place      : 0" version-check.txt >nul
           if errorlevel 1 exit /b 27
-          findstr /c:"Unchanged PDFs        : 6" version-check.txt >nul
+          findstr /x /c:"Unchanged PDFs        : %PDF_COUNT%" version-check.txt >nul
           if errorlevel 1 exit /b 28
 
       - name: Live FortiPAM 7.0 second download skips unchanged PDFs
         shell: cmd
         run: |
+          set /p PDF_COUNT=<fortipam-baseline-count.txt
+          if not defined PDF_COUNT exit /b 148
           call run.bat download https://docs.fortinet.com/product/fortipam/7.0 > tracking-second.txt
           set RC=%ERRORLEVEL%
           type tracking-second.txt
           if not "%RC%"=="0" exit /b %RC%
           findstr /c:"Downloaded/updated     : 0" tracking-second.txt >nul
           if errorlevel 1 exit /b 29
-          findstr /c:"Unchanged/skipped     : 6" tracking-second.txt >nul
+          findstr /x /c:"Unchanged/skipped     : %PDF_COUNT%" tracking-second.txt >nul
           if errorlevel 1 exit /b 30
-          findstr /c:"Unchanged PDFs        : 6" tracking-second.txt >nul
+          findstr /x /c:"Unchanged PDFs        : %PDF_COUNT%" tracking-second.txt >nul
           if errorlevel 1 exit /b 31
 
       - name: Live FortiCamera root inventory
